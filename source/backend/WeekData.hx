@@ -4,8 +4,7 @@ package backend;
 import sys.io.File;
 import sys.FileSystem;
 #end
-import lime.utils.Assets;
-import openfl.utils.Assets as OpenFlAssets;
+
 import tjson.TJSON as Json;
 
 typedef WeekFile =
@@ -87,13 +86,13 @@ class WeekData {
 		weeksList = [];
 		weeksLoaded.clear();
 		#if MODS_ALLOWED
-		var directories:Array<String> = [Paths.mods(), Paths.getPreloadPath()];
+		var directories:Array<String> = [Paths.mods(), SUtil.getPath() + Paths.getPreloadPath()];
 		var originalLength:Int = directories.length;
 
 		for (mod in Mods.parseList().enabled)
 			directories.push(Paths.mods(mod + '/'));
 		#else
-		var directories:Array<String> = [Paths.getPreloadPath()];
+		var directories:Array<String> = [SUtil.getPath() + Paths.getPreloadPath()];
 		var originalLength:Int = directories.length;
 		#end
 

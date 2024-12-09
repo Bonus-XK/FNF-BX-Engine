@@ -2,18 +2,22 @@ package options;
 
 import objects.CheckboxThingie;
 import objects.AttachedText;
+import flixel.addons.transition.FlxTransitionableState;
 import options.Option;
+import states.MainMenuState;
 
 class BaseOptionsMenu extends MusicBeatSubstate
 {
 	private var curOption:Option = null;
-	private var curSelected:Int = 0;
+	private var currentlySelected:Int = 0;
 	private var optionsArray:Array<Option>;
 
 	private var grpOptions:FlxTypedGroup<Alphabet>;
 	private var checkboxGroup:FlxTypedGroup<CheckboxThingie>;
 	private var grpTexts:FlxTypedGroup<AttachedText>;
 
+	private var background:FlxSprite;
+	private var velocityBackground:FlxBackdrop;
 	private var descBox:FlxSprite;
 	private var descText:FlxText;
 
@@ -31,11 +35,25 @@ class BaseOptionsMenu extends MusicBeatSubstate
 		DiscordClient.changePresence(rpcTitle, null);
 		#end
 		
-		var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
-		bg.color = 0xFFea71fd;
-		bg.screenCenter();
-		bg.antialiasing = ClientPrefs.data.antialiasing;
-		add(bg);
+		background = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
+		switch (ClientPrefs.data.themes) {
+			case 'SB Engine':
+				background.color = 0xFF800080;
+			
+			case 'Psych Engine':
+				background.color = 0xFFea71fd;
+		}
+		background.scrollFactor.set();
+		background.screenCenter();
+		background.antialiasing = ClientPrefs.data.antialiasing;
+		background.updateHitbox();
+		add(background);
+
+		velocityBackground = new FlxBackdrop(FlxGridOverlay.createGrid(80, 80, 160, 160, true, 0x70000000, 0x0));
+		velocityBackground.velocity.set(FlxG.random.bool(50) ? 90 : -90, FlxG.random.bool(50) ? 90 : -90);
+		velocityBackground.visible = ClientPrefs.data.velocityBackground;
+		velocityBackground.antialiasing = ClientPrefs.data.antialiasing;
+		add(velocityBackground);
 
 		// avoids lagspikes while scrolling through menus!
 		grpOptions = new FlxTypedGroup<Alphabet>();
@@ -57,7 +75,19 @@ class BaseOptionsMenu extends MusicBeatSubstate
 		add(titleText);
 
 		descText = new FlxText(50, 600, 1180, "", 32);
-		descText.setFormat(Paths.font("future.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		switch (ClientPrefs.data.gameStyle) {
+			case 'Psych Engine' | 'Kade Engine' | 'Cheeky':
+				descText.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'Dave and Bambi':
+				descText.setFormat(Paths.font("comic.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'TGT Engine':
+				descText.setFormat(Paths.font("calibri.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			default:
+				descText.setFormat(Paths.font("bahnschrift.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		}
 		descText.scrollFactor.set();
 		descText.borderSize = 2.4;
 		add(descText);
@@ -90,6 +120,10 @@ class BaseOptionsMenu extends MusicBeatSubstate
 			//optionText.snapToPosition(); //Don't ignore me when i ask for not making a fucking pull request to uncomment this line ok
 			updateTextFrom(optionsArray[i]);
 		}
+		
+		#if android
+        addVirtualPad(FULL, A_B_C);
+        #end
 
 		changeSelection();
 		reloadCheckboxes();
@@ -115,7 +149,15 @@ class BaseOptionsMenu extends MusicBeatSubstate
 		}
 
 		if (controls.BACK) {
+			#if android
+			FlxTransitionableState.skipNextTransOut = true;
+			FlxG.resetState();
+			ClientPrefs.saveSettings();
+			#else
 			close();
+			#end
+			ClientPrefs.saveSettings();
+			Application.current.window.title = "Friday Night Funkin': SB Engine v" + MainMenuState.sbEngineVersion + " - Options Menu";
 			FlxG.sound.play(Paths.sound('cancelMenu'));
 		}
 
@@ -208,16 +250,22 @@ class BaseOptionsMenu extends MusicBeatSubstate
 				}
 			}
 
-			if(controls.RESET)
+			if(controls.RESET #if android || MusicBeatSubstate.virtualPad.buttonC.justPressed #end)
 			{
-				var leOption:Option = optionsArray[curSelected];
-				leOption.setValue(leOption.defaultValue);
-				if(leOption.type != 'bool')
+				for (i in 0...optionsArray.length)
 				{
-					if(leOption.type == 'string') leOption.curOption = leOption.options.indexOf(leOption.getValue());
-					updateTextFrom(leOption);
+					var leOption:Option = optionsArray[i];
+					leOption.setValue(leOption.defaultValue);
+					if(leOption.type != 'bool')
+					{
+						if(leOption.type == 'string')
+						{
+							leOption.curOption = leOption.options.indexOf(leOption.getValue());
+						}
+						updateTextFrom(leOption);
+					}
+					leOption.change();
 				}
-				leOption.change();
 				FlxG.sound.play(Paths.sound('cancelMenu'));
 				reloadCheckboxes();
 			}
@@ -247,20 +295,20 @@ class BaseOptionsMenu extends MusicBeatSubstate
 	
 	function changeSelection(change:Int = 0)
 	{
-		curSelected += change;
-		if (curSelected < 0)
-			curSelected = optionsArray.length - 1;
-		if (curSelected >= optionsArray.length)
-			curSelected = 0;
+		currentlySelected += change;
+		if (currentlySelected < 0)
+			currentlySelected = optionsArray.length - 1;
+		if (currentlySelected >= optionsArray.length)
+			currentlySelected = 0;
 
-		descText.text = optionsArray[curSelected].description;
+		descText.text = optionsArray[currentlySelected].description;
 		descText.screenCenter(Y);
 		descText.y += 270;
 
 		var bullShit:Int = 0;
 
 		for (item in grpOptions.members) {
-			item.targetY = bullShit - curSelected;
+			item.targetY = bullShit - currentlySelected;
 			bullShit++;
 
 			item.alpha = 0.6;
@@ -270,7 +318,7 @@ class BaseOptionsMenu extends MusicBeatSubstate
 		}
 		for (text in grpTexts) {
 			text.alpha = 0.6;
-			if(text.ID == curSelected) {
+			if(text.ID == currentlySelected) {
 				text.alpha = 1;
 			}
 		}
@@ -279,7 +327,7 @@ class BaseOptionsMenu extends MusicBeatSubstate
 		descBox.setGraphicSize(Std.int(descText.width + 20), Std.int(descText.height + 25));
 		descBox.updateHitbox();
 
-		curOption = optionsArray[curSelected]; //shorter lol
+		curOption = optionsArray[currentlySelected]; //shorter lol
 		FlxG.sound.play(Paths.sound('scrollMenu'));
 	}
 

@@ -6,6 +6,7 @@ import sys.io.File;
 #else
 import lime.utils.Assets;
 #end
+
 import tjson.TJSON as Json;
 
 typedef ModsList = {
@@ -31,8 +32,7 @@ class Mods
 		'stages',
 		'weeks',
 		'fonts',
-		'scripts',
-		'achievements'
+		'scripts'
 	];
 
 	private static var globalMods:Array<String> = [];
@@ -67,7 +67,7 @@ class Mods
 		#end
 		return list;
 	}
-	
+
 	inline public static function mergeAllTextsNamed(path:String, defaultDirectory:String = null, allowDuplicates:Bool = false)
 	{
 		if(defaultDirectory == null) defaultDirectory = Paths.getPreloadPath();
@@ -151,7 +151,8 @@ class Mods
 	}
 
 	public static var updatedOnState:Bool = false;
-	inline public static function parseList():ModsList {
+	inline public static function parseList():ModsList
+	{
 		if(!updatedOnState) updateModList();
 		var list:ModsList = {enabled: [], disabled: [], all: []};
 
@@ -161,7 +162,6 @@ class Mods
 			{
 				//trace('Mod: $mod');
 				if(mod.trim().length < 1) continue;
-
 				var dat = mod.split("|");
 				list.all.push(dat[0]);
 				if (dat[1] == "1")
@@ -217,7 +217,7 @@ class Mods
 			fileStr += values[0] + '|' + (values[1] ? '1' : '0');
 		}
 
-		File.saveContent('modsList.txt', fileStr);
+		File.saveContent(SUtil.getPath() + 'modsList.txt', fileStr);
 		updatedOnState = true;
 		//trace('Saved modsList.txt');
 		#end

@@ -2,11 +2,13 @@ package substates;
 
 import objects.AttachedText;
 import objects.CheckboxThingie;
+import flixel.addons.transition.FlxTransitionableState;
+
 
 class GameplayChangersSubstate extends MusicBeatSubstate
 {
 	private var curOption:GameplayOption = null;
-	private var curSelected:Int = 0;
+	private var currentlySelected:Int = 0;
 	private var optionsArray:Array<Dynamic> = [];
 
 	private var grpOptions:FlxTypedGroup<Alphabet>;
@@ -62,13 +64,16 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 		option.displayFormat = '%vX';
 		optionsArray.push(option);
 
+		var option:GameplayOption = new GameplayOption('Health Drain Percent', 'healthDrain', 'percent', 0);
+		optionsArray.push(option);
+
 		var option:GameplayOption = new GameplayOption('Instakill on Miss', 'instakill', 'bool', false);
 		optionsArray.push(option);
 
-		var option:GameplayOption = new GameplayOption('God Mode', 'practice', 'bool', false);
+		var option:GameplayOption = new GameplayOption('Practice Mode', 'practice', 'bool', false);
 		optionsArray.push(option);
 
-		var option:GameplayOption = new GameplayOption('AutoPlay', 'botplay', 'bool', false);
+		var option:GameplayOption = new GameplayOption('Botplay', 'botplay', 'bool', false);
 		optionsArray.push(option);
 	}
 
@@ -135,6 +140,11 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 
 		changeSelection();
 		reloadCheckboxes();
+		
+		#if android
+		addVirtualPad(FULL, A_B_C);
+		addPadCamera();
+		#end
 	}
 
 	var nextAccept:Int = 5;
@@ -152,9 +162,15 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 		}
 
 		if (controls.BACK) {
-			close();
-			ClientPrefs.saveSettings();
+			#if android
+			FlxTransitionableState.skipNextTransOut = true;
+			FlxG.resetState();
+			#else
 			FlxG.sound.play(Paths.sound('cancelMenu'));
+			close();
+			#end
+			ClientPrefs.saveSettings();
+			
 		}
 
 		if(nextAccept <= 0)
@@ -265,7 +281,7 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 				}
 			}
 
-			if(controls.RESET)
+			if(controls.RESET #if android || MusicBeatSubstate.virtualPad.buttonC.justPressed #end)
 			{
 				for (i in 0...optionsArray.length)
 				{
@@ -321,16 +337,16 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 	
 	function changeSelection(change:Int = 0)
 	{
-		curSelected += change;
-		if (curSelected < 0)
-			curSelected = optionsArray.length - 1;
-		if (curSelected >= optionsArray.length)
-			curSelected = 0;
+		currentlySelected += change;
+		if (currentlySelected < 0)
+			currentlySelected = optionsArray.length - 1;
+		if (currentlySelected >= optionsArray.length)
+			currentlySelected = 0;
 
 		var bullShit:Int = 0;
 
 		for (item in grpOptions.members) {
-			item.targetY = bullShit - curSelected;
+			item.targetY = bullShit - currentlySelected;
 			bullShit++;
 
 			item.alpha = 0.6;
@@ -340,11 +356,11 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 		}
 		for (text in grpTexts) {
 			text.alpha = 0.6;
-			if(text.ID == curSelected) {
+			if(text.ID == currentlySelected) {
 				text.alpha = 1;
 			}
 		}
-		curOption = optionsArray[curSelected]; //shorter lol
+		curOption = optionsArray[currentlySelected]; //shorter lol
 		FlxG.sound.play(Paths.sound('scrollMenu'));
 	}
 

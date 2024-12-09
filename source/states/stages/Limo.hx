@@ -1,7 +1,6 @@
 package states.stages;
 
 import states.stages.objects.*;
-import backend.Achievements;
 
 enum HenchmenKillState
 {
@@ -262,18 +261,6 @@ class Limo extends BaseStage
 				limoCorpse.visible = false;
 				limoCorpseTwo.visible = false;
 				limoKillingState = KILLING;
-
-				#if ACHIEVEMENTS_ALLOWED
-				Achievements.henchmenDeath++;
-				FlxG.save.data.henchmenDeath = Achievements.henchmenDeath;
-				var achieve:String = game.checkForAchievement(['roadkill_enthusiast']);
-				if (achieve != null) {
-					game.startAchievement(achieve);
-				} else {
-					FlxG.save.flush();
-				}
-				FlxG.log.add('Deaths: ' + Achievements.henchmenDeath);
-				#end
 			}
 		}
 	}

@@ -6,246 +6,135 @@ import objects.Alphabet;
 
 class VisualsUISubState extends BaseOptionsMenu
 {
-	var noteOptionID:Int = -1;
-	var notes:FlxTypedGroup<StrumNote>;
-	var notesTween:Array<FlxTween> = [];
-	var noteY:Float = 90;
 	public function new()
 	{
+		Application.current.window.title = "Friday Night Funkin': SB Engine v" + MainMenuState.sbEngineVersion + " - Options Menu (In Visuals & UI Settings Menu)";
+
 		title = 'Visuals and UI';
 		rpcTitle = 'Visuals & UI Settings Menu'; //for Discord Rich Presence
-
-		// for note skins
-		notes = new FlxTypedGroup<StrumNote>();
-		for (i in 0...Note.colArray.length)
-		{
-			var note:StrumNote = new StrumNote(370 + (560 / Note.colArray.length) * i, -200, i, 0);
-			note.centerOffsets();
-			note.centerOrigin();
-			note.playAnim('static');
-			notes.add(note);
-		}
-
-		// options
-
-		var noteSkins:Array<String> = Mods.mergeAllTextsNamed('images/noteSkins/list.txt', 'shared');
-		if(noteSkins.length > 0)
-		{
-			if(!noteSkins.contains(ClientPrefs.data.noteSkin))
-				ClientPrefs.data.noteSkin = ClientPrefs.defaultData.noteSkin; //Reset to default if saved noteskin couldnt be found
-
-			noteSkins.insert(0, ClientPrefs.defaultData.noteSkin); //Default skin always comes first
-			var option:Option = new Option('Note Skins:',
-				"选择你的箭头样式：",
-				'noteSkin',
-				'string',
-				noteSkins);
-			addOption(option);
-			option.onChange = onChangeNoteSkin;
-			noteOptionID = optionsArray.length - 1;
-		}
 		
-		var noteSplashes:Array<String> = Mods.mergeAllTextsNamed('images/noteSplashes/list.txt', 'shared');
-		if(noteSplashes.length > 0)
-		{
-			if(!noteSplashes.contains(ClientPrefs.data.splashSkin))
-				ClientPrefs.data.splashSkin = ClientPrefs.defaultData.splashSkin; //Reset to default if saved splashskin couldnt be found
+		var option:Option = new Option('FPS Counter',
+			'If unchecked, hides FPS Counter.', 'showFPS', 'bool');
+		addOption(option);
+		option.onChange = onChangeFPSCounter;
 
-			noteSplashes.insert(0, ClientPrefs.defaultData.splashSkin); //Default skin always comes first
-			var option:Option = new Option('Note Splashes:',
-				"选择你的箭头打击粒子样式：",
-				'splashSkin',
-				'string',
-				noteSplashes);
-			addOption(option);
-		}
-
-		var option:Option = new Option('Note Splash Opacity',
-			'调整箭头打击粒子的透明度',
-			'splashAlpha',
-			'percent');
-		option.scrollSpeed = 1.6;
-		option.minValue = 0.0;
-		option.maxValue = 1;
-		option.changeValue = 0.1;
-		option.decimals = 1;
+		var option:Option = new Option('Total FPS Counter',
+			'If checked, shows Total FPS Counter.', 'showTotalFPS', 'bool');
 		addOption(option);
 
-		var option:Option = new Option('Hide HUD',
-			'如果你勾选了，那么血量条等东西将不会显示',
-			'hideHud',
-			'bool');
+		var option:Option = new Option('Memory Counter',
+			'If unchecked, hides memory on FPS Counter.', 'memory', 'bool');
 		addOption(option);
 
-		var option:Option = new Option('Score Txt Font: ',
-		    "选择信息文字使用的字体：",
-			'scoreTxtFont',
-			'string',
-			['Original', 'Bahnschrift']);
+		var option:Option = new Option('Memory Peak Counter',
+			'If checked, shows maximum memory on FPS Counter.', 'totalMemory', 'bool');
 		addOption(option);
 
-		var option:Option = new Option('Hide Watermark',
-			'如果你勾选了，那么左下角水印将不会显示',
-			'hideWatermark',
-			'bool');
+		var option:Option = new Option('Engine Version Counter',
+			'If checked, shows engine version on FPS Counter.', 'engineVersion', 'bool');
 		addOption(option);
-		
-		var option:Option = new Option('Time Bar:',
-			"你想让时间条怎么显示？",
-			'timeBarType',
-			'string',
-			['Time Left', 'Time Elapsed', 'Song Name', 'Disabled']);
+
+		#if debug
+		var option:Option = new Option('Debug Info Counter',
+			'If checked, shows debug info on FPS Counter.', 'debugInfo', 'bool');
+		addOption(option);
+		#end
+
+		var option:Option = new Option('Rainbow FPS',
+			'If checked, enables rainbow FPS.', 'rainbowFPS', 'bool');
+		addOption(option);
+
+		var option:Option = new Option('Red text on lowest framerate',
+			'If unchecked, disables red color when you had an lowest frame rate.', 'redText', 'bool');
 		addOption(option);
 
 		var option:Option = new Option('Flashing Lights',
-			"如果你不勾选，那么不会有频闪",
+			"Uncheck this if you're sensitive to flashing lights!",
 			'flashing',
 			'bool');
 		addOption(option);
 
-		var option:Option = new Option('Custom Cutscene',
-		    "选择你的过场动画样式：",
-			'CustomFade',
-			'string',
-			['Move', 'Alpha']);
-		addOption(option);
-
-		var option:Option = new Option('Cutscene Text',
-		    "如果你不勾选，将会关闭过场动画的引擎版本和事件指示器",
-			'CustomFadeText',
+		var option:Option = new Option('Watermark on right down corner',
+			"Uncheck this if you dont want to see watermark icon",
+			'watermarkIcon',
 			'bool');
 		addOption(option);
+		option.onChange = onWatermarkIcon;
 
-		var option:Option = new Option('Camera Zooms',
-			"如果你不勾选，那么镜头就不会缩放（我不知道）",
-			'camZooms',
-			'bool');
-		addOption(option);
-
-		var option:Option = new Option('Health Bar Opacity',
-			'你想让你的血量条透明吗？',
-			'healthBarAlpha',
-			'percent');
-		option.scrollSpeed = 1.6;
-		option.minValue = 0.0;
-		option.maxValue = 1;
-		option.changeValue = 0.1;
-		option.decimals = 1;
-		addOption(option);
-		
-		#if !mobile
-		var option:Option = new Option('FPS Counter',
-			'如果你不勾选，那么帧数计数器（FPS）将不会显示',
-			'showFPS',
-			'bool');
-		addOption(option);
-		option.onChange = onChangeFPSCounter;
-		#end
-		
-		var option:Option = new Option('FPS Engine Version',
-			'如果你不勾选，那么帧数计数器下的引擎版本将不会显示',
-			'showVer',
-			'bool');
-		addOption(option);
-
-		var option:Option = new Option('FPS Display Color: ',
-		    "你想让你的FPS计数器显示什么颜色？",
-			'fpsColor',
-			'string',
-			['White', 'Cyan', 'Blue', 'Red', 'Green', 'Yellow']);
-		addOption(option);
-		
-		var option:Option = new Option('Pause Screen Song:',
-			"你想让你停下来放什么音乐？",
-			'pauseMusic',
-			'string',
-			['None', 'Breakfast', 'Tea Time']);
-		addOption(option);
-		option.onChange = onChangePauseMusic;
-
-        var option:Option = new Option('Check for Updates',
-			'勾选此选项来检查你的ME引擎是不是最新的',
-			'checkForUpdates',
-			'bool');
+		var option:Option = new Option('Objects',
+			'If unchecked, disable some objects for optimization\nFor example: Girlfriend and logo had an trail added.', 'objects', 'bool');
 		addOption(option);
 
 		#if desktop
 		var option:Option = new Option('Discord Rich Presence',
-			"取消选中此项以防止意外泄漏，它将在Discord的“播放”框中隐藏应用程序",
+			"Uncheck this to prevent accidental leaks, it will hide the Application from your \"Playing\" box on Discord",
 			'discordRPC',
 			'bool');
 		addOption(option);
 		#end
 
-		var option:Option = new Option('Combo Stacking',
-			"如果未选中，Rank和Combo将不会堆叠，从而节省系统内存并使其更易于读铺",
-			'comboStacking',
+		var option:Option = new Option('Auto Pause',
+			"If checked, the game automatically pauses if the screen isn't on focus.",
+			'autoPause',
 			'bool');
 		addOption(option);
+		option.onChange = onChangeAutoPause;
+
+		var option:Option = new Option('Velocity background', 
+		    'If unchecked, this option is disabling velocity background for optimization.', 'velocityBackground', 'bool');
+		addOption(option);
+
+		#if PSYCH_WATERMARKS
+		var option:Option = new Option('0.7.3 Loading screen', 
+		    'If checked, enables the loading screen from 0.7.3 experimental build, but it breaks the entire GPU caching.', 'loadingScreen', 'bool');
+		addOption(option);
+		#end
+
+		/*var option:Option = new Option('Skip the Custom fade transition', 
+		    'If checked, skips the custom fade transition.', 'skipFadeTransition', 'bool');
+		addOption(option);*/
+
+		var option:Option = new Option('Themes:', 
+			'Change theme from different engines. More themes are coming very soon', 'themes', 'string', ['SB Engine', 'Psych Engine']);
+		addOption(option);
+
+		var option:Option = new Option('FNF Engine type:', 
+			'Change FNF Game engine type style and font plus', 'gameStyle', 'string', ['SB Engine', 'Psych Engine', 'Kade Engine', 'TGT Engine', 'Dave and Bambi', 'Cheeky']);
+		addOption(option);
+
+		var option:Option = new Option('Main Menu Song:',
+			"What song do you prefer for the main menu?",
+			'mainMenuMusic',
+			'string',
+			['None', 'SB Engine', 'FNF', 'Kade Engine', 'Checky']);
+		addOption(option);
+		option.onChange = onChangeMainMenuMusic;
 
 		super();
-		add(notes);
 	}
 
-	override function changeSelection(change:Int = 0)
+	function onChangeAutoPause()
 	{
-		super.changeSelection(change);
-		
-		if(noteOptionID < 0) return;
-
-		for (i in 0...Note.colArray.length)
-		{
-			var note:StrumNote = notes.members[i];
-			if(notesTween[i] != null) notesTween[i].cancel();
-			if(curSelected == noteOptionID)
-				notesTween[i] = FlxTween.tween(note, {y: noteY}, Math.abs(note.y / (200 + noteY)) / 3, {ease: FlxEase.quadInOut});
-			else
-				notesTween[i] = FlxTween.tween(note, {y: -200}, Math.abs(note.y / (200 + noteY)) / 3, {ease: FlxEase.quadInOut});
-		}
+		FlxG.autoPause = ClientPrefs.data.autoPause;
 	}
-
-	var changedMusic:Bool = false;
-	function onChangePauseMusic()
-	{
-		if(ClientPrefs.data.pauseMusic == 'None')
-			FlxG.sound.music.volume = 0;
-		else
-			FlxG.sound.playMusic(Paths.music(Paths.formatToSongPath(ClientPrefs.data.pauseMusic)));
-
-		changedMusic = true;
-	}
-
-	function onChangeNoteSkin()
-	{
-		notes.forEachAlive(function(note:StrumNote) {
-			changeNoteSkin(note);
-			note.centerOffsets();
-			note.centerOrigin();
-		});
-	}
-
-	function changeNoteSkin(note:StrumNote)
-	{
-		var skin:String = Note.defaultNoteSkin;
-		var customSkin:String = skin + Note.getNoteSkinPostfix();
-		if(Paths.fileExists('images/$customSkin.png', IMAGE)) skin = customSkin;
-
-		note.texture = skin; //Load texture and anims
-		note.reloadNote();
-		note.playAnim('static');
-	}
-
-	override function destroy()
-	{
-		if(changedMusic && !OptionsState.onPlayState) FlxG.sound.playMusic(Paths.music('freakyMenu'), 1, true);
-		super.destroy();
-	}
-
-	#if !mobile
+	
 	function onChangeFPSCounter()
 	{
 		if(Main.fpsVar != null)
 			Main.fpsVar.visible = ClientPrefs.data.showFPS;
 	}
-	#end
+
+	function onWatermarkIcon()
+	{
+		if(Main.watermark != null)
+			Main.watermark.visible = ClientPrefs.data.watermarkIcon;
+	}
+
+	var changedMainMusic:Bool = false;
+	function onChangeMainMenuMusic()
+	{
+		if (ClientPrefs.data.mainMenuMusic != 'FNF') FlxG.sound.playMusic(Paths.music('freakyMenu-' + ClientPrefs.data.mainMenuMusic));
+		if (ClientPrefs.data.mainMenuMusic == 'FNF') FlxG.sound.playMusic(Paths.music('freakyMenu'));
+		changedMainMusic = true;
+	}
 }

@@ -12,11 +12,15 @@ class SaveVariables {
 	public var middleScroll:Bool = false;
 	public var opponentStrums:Bool = true;
 	public var showFPS:Bool = true;
-	public var showVer:Bool = true;
-	public var fpsColor:String = 'White';
+	public var showTotalFPS:Bool = false;
+	public var memory:Bool = true;
+	public var totalMemory:Bool = false;
+	public var engineVersion:Bool = false;
+	public var debugInfo:Bool = false;
+	public var rainbowFPS:Bool = false;
+	public var redText:Bool = true;
+	public var watermarkIcon:Bool = true;
 	public var flashing:Bool = true;
-	public var CustomFade:String = 'Move';
-	public var CustomFadeText:Bool = true;
 	public var autoPause:Bool = true;
 	public var antialiasing:Bool = true;
 	public var noteSkin:String = 'Default';
@@ -25,12 +29,9 @@ class SaveVariables {
 	public var lowQuality:Bool = false;
 	public var shaders:Bool = true;
 	public var cacheOnGPU:Bool = #if !switch false #else true #end; //From Stilic
-	public var framerate:Int = 120;
+	public var framerate:Int = 60;
 	public var camZooms:Bool = true;
 	public var hideHud:Bool = false;
-	public var scoreTxtFont:String = 'Original';
-	public var hideWatermark:Bool = false;
-	public var healthBarOverlay:Bool = true;
 	public var noteOffset:Int = 0;
 	public var arrowRGB:Array<Array<FlxColor>> = [
 		[0xFFC24B99, 0xFFFFFFFF, 0xFF3C1F56],
@@ -44,15 +45,52 @@ class SaveVariables {
 		[0xFFFF884E, 0xFFFFFAF5, 0xFF6C0000]];
 
 	public var ghostTapping:Bool = true;
-	public var smoothHealth:Bool = true;
-	public var sbIconBop:Bool = true;
-	public var timeBarType:String = 'Time Left';
+	public var timeBarType:String = 'Time Elapsed';
+
+  	//  Mobile Stuff
+	public var hitboxmode:String = 'New';
+	public var hitboxExtend:Bool = false;
+	public var hitboxLocation:String = 'Bottom';
+	public var hitboxalpha:Float = 0.2; //someone request this lol
+	public var VirtualPadAlpha:Float = 0.75;
+	public var VirtualPadSPACE:Array<Float> = [FlxG.width - 44 * 3, FlxG.height - 45 * 3];
+
+	public var scoreZoom:Bool = true;
 	public var noReset:Bool = false;
 	public var healthBarAlpha:Float = 1;
 	public var hitsoundVolume:Float = 0;
 	public var pauseMusic:String = 'Tea Time';
 	public var checkForUpdates:Bool = true;
 	public var comboStacking:Bool = true;
+	public var themes:String = 'SB Engine';
+	public var velocityBackground:Bool = true;
+	public var gameStyle:String = 'SB Engine';
+	public var judgementCounter:Bool = true;
+	public var judgementCounterStyle:String = 'Original';
+	public var judgementZoom:Bool = true;
+	public var watermark:Bool = true;
+	public var watermarkStyle:String = 'SB Engine';
+	public var randomEngineNames:Bool = false;
+	public var objects:Bool = true;
+	public var timeBar:Bool = true;
+	public var iconBounce:Bool = true;
+	public var cameraMovement:Bool = true;
+	public var arrowGlow:Bool = true;
+	public var scoreText:Bool = true;
+	public var textSineEffect:Bool = true;
+	public var shakeObjects:Bool = true;
+	public var opponentHealthColor:Bool = false;
+	public var autoplayTextOnTimeBar:Bool = true;
+	public var guitarHeroSustains:Bool = true;
+	public var originalHPBar:Bool = false;
+	public var smoothHealth:Bool = true;
+	public var tweenableTimeTxt:Bool = false;
+	public var tweenableScoreTxt:Bool = false;
+	public var millisecondTxt:Bool = false;
+	public var ratingPopup:Bool = true;
+	public var mainMenuMusic:String = 'SB Engine';
+	public var resultsScreen:Bool = false;
+	public var loadingScreen:Bool = false;
 	public var gameplaySettings:Map<String, Dynamic> = [
 		'scrollspeed' => 1.0,
 		'scrolltype' => 'multiplicative', 
@@ -69,23 +107,23 @@ class SaveVariables {
 		'songspeed' => 1.0,
 		'healthgain' => 1.0,
 		'healthloss' => 1.0,
+		'healthDran' => 0,
 		'instakill' => false,
 		'practice' => false,
-		'botplay' => false,
-		'opponentplay' => false
+		'botplay' => false
 	];
 
 	public var comboOffset:Array<Int> = [0, 0, 0, 0];
 	public var ratingOffset:Int = 0;
+	public var impressiveWindow:Int = 25;
 	public var sickWindow:Int = 45;
 	public var goodWindow:Int = 90;
 	public var badWindow:Int = 135;
 	public var safeFrames:Float = 10;
 	public var discordRPC:Bool = true;
 
-	public function new()
-	{
-		//Why does haxe needs this again?
+	public function new() {
+		// Really :/?
 	}
 }
 
@@ -116,7 +154,9 @@ class ClientPrefs {
 		'volume_down'	=> [NUMPADMINUS, MINUS],
 		
 		'debug_1'		=> [SEVEN],
-		'debug_2'		=> [EIGHT]
+		'debug_2'		=> [EIGHT],
+
+		'full_screen'   => [F11]
 	];
 	public static var gamepadBinds:Map<String, Array<FlxGamepadInputID>> = [
 		'note_up'		=> [DPAD_UP, Y],
@@ -174,8 +214,6 @@ class ClientPrefs {
 			//trace('saved variable: $key');
 			Reflect.setField(FlxG.save.data, key, Reflect.field(data, key));
 		}
-		FlxG.save.data.achievementsMap = Achievements.achievementsMap;
-		FlxG.save.data.henchmenDeath = Achievements.henchmenDeath;
 		FlxG.save.flush();
 
 		//Placing this in a separate save so that it can be manually deleted without removing your Score and stuff
@@ -202,8 +240,17 @@ class ClientPrefs {
 			Main.fpsVar.visible = data.showFPS;
 		}
 
+		if(Main.watermark != null) {
+			Main.watermark.visible = data.watermarkIcon;
+		}
+
 		#if (!html5 && !switch)
 		FlxG.autoPause = ClientPrefs.data.autoPause;
+
+		if(FlxG.save.data.framerate == null) {
+			final refreshRate:Int = FlxG.stage.application.window.displayMode.refreshRate;
+			data.framerate = Std.int(FlxMath.bound(refreshRate, 60, 240));
+		}
 		#end
 
 		if(data.framerate > FlxG.drawFramerate) {

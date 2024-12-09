@@ -73,6 +73,11 @@ class GameOverSubstate extends MusicBeatSubstate
 		camFollow.setPosition(boyfriend.getGraphicMidpoint().x, boyfriend.getGraphicMidpoint().y);
 		FlxG.camera.focusOn(new FlxPoint(FlxG.camera.scroll.x + (FlxG.camera.width / 2), FlxG.camera.scroll.y + (FlxG.camera.height / 2)));
 		add(camFollow);
+
+    	#if mobile
+    	addVirtualPad(NONE, A_B);
+    	addPadCamera();
+    	#end
 	}
 
 	public var startedDeath:Bool = false;
@@ -102,7 +107,7 @@ class GameOverSubstate extends MusicBeatSubstate
 			else
 				MusicBeatState.switchState(new FreeplayState());
 
-			FlxG.sound.playMusic(Paths.music('freakyMenu'));
+			FlxG.sound.playMusic(Paths.music('freakyMenu-' + ClientPrefs.data.mainMenuMusic));
 			PlayState.instance.callOnScripts('onGameOverConfirm', [false]);
 		}
 		
@@ -172,7 +177,7 @@ class GameOverSubstate extends MusicBeatSubstate
 			{
 				FlxG.camera.fade(FlxColor.BLACK, 2, false, function()
 				{
-					MusicBeatState.resetState();
+					FlxG.resetState();
 				});
 			});
 			PlayState.instance.callOnScripts('onGameOverConfirm', [true]);

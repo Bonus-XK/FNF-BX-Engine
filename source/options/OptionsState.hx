@@ -2,50 +2,84 @@ package options;
 
 import states.MainMenuState;
 import backend.StageData;
-import openfl.Lib;
+import flixel.addons.transition.FlxTransitionableState;
 
 class OptionsState extends MusicBeatState
 {
-	var options:Array<String> = ['Note Colors', 'Controls', 'Adjust Delay and Combo', 'Graphics', 'Visuals and UI', 'Gameplay'];
+	var options:Array<String> = ['Note Colors', #if desktop 'Controls', #end 'Adjust Delay and Combo', 'Graphics', 'Visuals and UI', 'Gameplay'];
 	private var grpOptions:FlxTypedGroup<Alphabet>;
-	private static var curSelected:Int = 0;
+	private static var currentlySelected:Int = 0;
 	public static var menuBG:FlxSprite;
 	public static var onPlayState:Bool = false;
+	var tipText:FlxText;
 
 	function openSelectedSubstate(label:String) {
 		switch(label) {
 			case 'Note Colors':
 				openSubState(new options.NotesSubState());
+			  	#if android
+				removeVirtualPad();
+				#end
 			case 'Controls':
 				openSubState(new options.ControlsSubState());
 			case 'Graphics':
 				openSubState(new options.GraphicsSettingsSubState());
+			  	#if android
+				removeVirtualPad();
+				#end
 			case 'Visuals and UI':
 				openSubState(new options.VisualsUISubState());
+		    	#if android
+				removeVirtualPad();
+				#end
 			case 'Gameplay':
+				#if android
+				removeVirtualPad();
+				#end
 				openSubState(new options.GameplaySettingsSubState());
 			case 'Adjust Delay and Combo':
+				Application.current.window.title = "Friday Night Funkin': SB Engine v" + MainMenuState.sbEngineVersion + " - Options Menu (Loading Adjust Delay Combo Menu)";
 				MusicBeatState.switchState(new options.NoteOffsetState());
+			  	#if android
+				removeVirtualPad();
+				#end
 		}
 	}
 
+	var background:FlxSprite;
+	var velocityBackground:FlxBackdrop;
+	var androidControlsStyleTipText:FlxText;
+	var customizeAndroidControlsTipText:FlxText;
 	var selectorLeft:Alphabet;
 	var selectorRight:Alphabet;
 
 	override function create() {
-		Lib.application.window.title = "FNF':Meteoric Engine - Options Menu";
-
 		#if desktop
-		DiscordClient.changePresence("Options Menu", null);
+		DiscordClient.changePresence("In the Options Menu", null);
 		#end
 
-		var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
-		bg.antialiasing = ClientPrefs.data.antialiasing;
-		bg.color = 0xFFea71fd;
-		bg.updateHitbox();
+		Application.current.window.title = "Friday Night Funkin': SB Engine v" + MainMenuState.sbEngineVersion + " - Options Menu";
 
-		bg.screenCenter();
-		add(bg);
+		if (ClientPrefs.data.cacheOnGPU) Paths.clearStoredMemory();
+
+		background = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
+		switch (ClientPrefs.data.themes) {
+			case 'SB Engine':
+				background.color = 0xFF800080;
+			
+			case 'Psych Engine':
+				background.color = 0xFFea71fd;
+		}
+		background.scrollFactor.set();
+		background.screenCenter();
+		background.antialiasing = ClientPrefs.data.antialiasing;
+		background.updateHitbox();
+		add(background);
+
+		velocityBackground = new FlxBackdrop(FlxGridOverlay.createGrid(80, 80, 160, 160, true, 0x70000000, 0x0));
+		velocityBackground.velocity.set(FlxG.random.bool(50) ? 90 : -90, FlxG.random.bool(50) ? 90 : -90);
+		velocityBackground.visible = ClientPrefs.data.velocityBackground;
+		add(velocityBackground);
 
 		grpOptions = new FlxTypedGroup<Alphabet>();
 		add(grpOptions);
@@ -63,8 +97,24 @@ class OptionsState extends MusicBeatState
 		selectorRight = new Alphabet(0, 0, '<', true);
 		add(selectorRight);
 
+		if (ClientPrefs.data.cacheOnGPU) Paths.clearUnusedMemory();
+
 		changeSelection();
 		ClientPrefs.saveSettings();
+
+		#if android
+		addVirtualPad(UP_DOWN, A_B_X_Y);
+		androidControlsStyleTipText = new FlxText(10, FlxG.height - 44, 0, "Press Y to open the Android controls style!", 16);
+		customizeAndroidControlsTipText = new FlxText(10, FlxG.height - 24, 0, "Press X to customize the Android controls!", 16);
+		androidControlsStyleTipText.setFormat("VCR OSD Mono", 17, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		customizeAndroidControlsTipText.setFormat("VCR OSD Mono", 17, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		androidControlsStyleTipText.borderSize = 1.25;
+		androidControlsStyleTipText.scrollFactor.set();
+		customizeAndroidControlsTipText.borderSize = 1.25;
+		customizeAndroidControlsTipText.scrollFactor.set();
+		add(androidControlsStyleTipText);
+		add(customizeAndroidControlsTipText);
+	  	#end
 
 		super.create();
 	}
@@ -76,6 +126,17 @@ class OptionsState extends MusicBeatState
 
 	override function update(elapsed:Float) {
 		super.update(elapsed);
+		#if android
+		if (MusicBeatState.virtualPad.buttonX.justPressed) {
+			FlxTransitionableState.skipNextTransIn = true;
+			FlxTransitionableState.skipNextTransOut = true;
+			MusicBeatState.switchState(new android.AndroidControlsMenu());
+		}
+		if (MusicBeatState.virtualPad.buttonY.justPressed) {
+			removeVirtualPad();
+			openSubState(new android.HitboxSettingsSubState());
+		}
+		#end
 
 		if (controls.UI_UP_P) {
 			changeSelection(-1);
@@ -93,21 +154,22 @@ class OptionsState extends MusicBeatState
 				FlxG.sound.music.volume = 0;
 			}
 			else MusicBeatState.switchState(new MainMenuState());
+			Application.current.window.title = "Friday Night Funkin': SB Engine v" + MainMenuState.sbEngineVersion;
 		}
-		else if (controls.ACCEPT) openSelectedSubstate(options[curSelected]);
+		else if (controls.ACCEPT) openSelectedSubstate(options[currentlySelected]);
 	}
 	
 	function changeSelection(change:Int = 0) {
-		curSelected += change;
-		if (curSelected < 0)
-			curSelected = options.length - 1;
-		if (curSelected >= options.length)
-			curSelected = 0;
+		currentlySelected += change;
+		if (currentlySelected < 0)
+			currentlySelected = options.length - 1;
+		if (currentlySelected >= options.length)
+			currentlySelected = 0;
 
 		var bullShit:Int = 0;
 
 		for (item in grpOptions.members) {
-			item.targetY = bullShit - curSelected;
+			item.targetY = bullShit - currentlySelected;
 			bullShit++;
 
 			item.alpha = 0.6;

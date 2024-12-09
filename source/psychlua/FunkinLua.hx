@@ -132,7 +132,7 @@ class FunkinLua {
 		set('rating', 0);
 		set('ratingName', '');
 		set('ratingFC', '');
-		set('version', Main.meVersion.trim());
+		set('version', MainMenuState.psychEngineVersion.trim());
 
 		set('inGameOver', false);
 		set('mustHitSection', false);
@@ -174,6 +174,7 @@ class FunkinLua {
 		set('ghostTapping', ClientPrefs.data.ghostTapping);
 		set('hideHud', ClientPrefs.data.hideHud);
 		set('timeBarType', ClientPrefs.data.timeBarType);
+		set('scoreZoom', ClientPrefs.data.scoreZoom);
 		set('cameraZoomOnBeat', ClientPrefs.data.camZooms);
 		set('flashingLights', ClientPrefs.data.flashing);
 		set('noteOffset', ClientPrefs.data.noteOffset);
@@ -416,6 +417,26 @@ class FunkinLua {
 			}
 			luaTrace('removeLuaScript: Script $luaFile isn\'t running!', false, false, FlxColor.RED);
 			return false;
+		});
+		Lua_helper.add_callback(lua, "removeHScript", function(luaFile:String, ?ignoreAlreadyRunning:Bool = false) {
+			#if HSCRIPT_ALLOWED
+			var foundScript:String = findScript(luaFile, '.hx');
+			if(foundScript != null)
+			{
+				if(!ignoreAlreadyRunning)
+					for (script in game.hscriptArray)	
+						if(script.origin == foundScript)
+						{
+							trace('Closing script ' + (script.origin != null ? script.origin : luaFile));
+							script.destroy();
+							return true;
+						}
+			}
+			luaTrace('removeHScript: Script $luaFile isn\'t running!', false, false, FlxColor.RED);
+			return false;
+			#else
+			luaTrace("removeHScript: HScript is not supported on this platform!", false, false, FlxColor.RED);
+			#end
 		});
 
 		Lua_helper.add_callback(lua, "loadSong", function(?name:String = null, ?difficultyNum:Int = -1) {
@@ -806,7 +827,7 @@ class FunkinLua {
 			
 			#if desktop DiscordClient.resetClientID(); #end
 
-			FlxG.sound.playMusic(Paths.music('freakyMenu'));
+			FlxG.sound.playMusic(Paths.music('freakyMenu-' + ClientPrefs.data.mainMenuMusic));
 			PlayState.changedDifficulty = false;
 			PlayState.chartingMode = false;
 			game.transitioning = true;
@@ -1160,10 +1181,22 @@ class FunkinLua {
 		});
 
 		Lua_helper.add_callback(lua, "setHealthBarColors", function(left:String, right:String) {
-			game.healthBar.setColors(CoolUtil.colorFromString(left), CoolUtil.colorFromString(right));
+			var left_color:Null<FlxColor> = null;
+			var right_color:Null<FlxColor> = null;
+			if (left != null && left != '')
+				left_color = CoolUtil.colorFromString(left);
+			if (right != null && right != '')
+				right_color = CoolUtil.colorFromString(right);
+			game.healthBar.setColors(left_color, right_color);
 		});
 		Lua_helper.add_callback(lua, "setTimeBarColors", function(left:String, right:String) {
-			game.timeBar.setColors(CoolUtil.colorFromString(left), CoolUtil.colorFromString(right));
+			var left_color:Null<FlxColor> = null;
+			var right_color:Null<FlxColor> = null;
+			if (left != null && left != '')
+				left_color = CoolUtil.colorFromString(left);
+			if (right != null && right != '')
+				right_color = CoolUtil.colorFromString(right);
+			game.timeBar.setColors(left_color, right_color);
 		});
 
 		Lua_helper.add_callback(lua, "setObjectCamera", function(obj:String, camera:String = '') {
@@ -1269,7 +1302,7 @@ class FunkinLua {
 			path = Paths.modsJson(Paths.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
 			if(!FileSystem.exists(path))
 			#end
-				path = Paths.json(Paths.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
+				path = SUtil.getPath() + Paths.json(Paths.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
 
 			luaTrace('startDialogue: Trying to load dialogue: ' + path);
 
@@ -1411,6 +1444,23 @@ class FunkinLua {
 					theSound.pause();
 					theSound.time = value;
 					if(wasResumed) theSound.play();
+				}
+			}
+		});
+		Lua_helper.add_callback(lua, "getSoundPitch", function(tag:String) {
+			if(tag != null && tag.length > 0 && game.modchartSounds.exists(tag)) {
+				return game.modchartSounds.get(tag).pitch;
+			}
+			return 0;
+		});
+		Lua_helper.add_callback(lua, "setSoundPitch", function(tag:String, value:Float, doPause:Bool = false) {
+			if(tag != null && tag.length > 0 && game.modchartSounds.exists(tag)) {
+				var theSound:FlxSound = game.modchartSounds.get(tag);
+				if(theSound != null) {
+					var wasResumed:Bool = theSound.playing;
+					if (doPause) theSound.pause();
+					theSound.pitch = value;
+					if (doPause && wasResumed) theSound.play();
 				}
 			}
 		});
@@ -1608,7 +1658,7 @@ class FunkinLua {
 	function findScript(scriptFile:String, ext:String = '.lua')
 	{
 		if(!scriptFile.endsWith(ext)) scriptFile += ext;
-		var preloadPath:String = Paths.getPreloadPath(scriptFile);
+		var preloadPath:String = SUtil.getPath() + Paths.getPreloadPath(scriptFile);
 		#if MODS_ALLOWED
 		var path:String = Paths.modFolders(scriptFile);
 		if(FileSystem.exists(scriptFile))
@@ -1657,7 +1707,7 @@ class FunkinLua {
 	#if (MODS_ALLOWED && !flash && sys)
 	public var runtimeShaders:Map<String, Array<String>> = new Map<String, Array<String>>();
 	#end
-	public function initLuaShader(name:String, ?glslVersion:Int = 120)
+	public function initLuaShader(name:String)
 	{
 		if(!ClientPrefs.data.shaders) return false;
 

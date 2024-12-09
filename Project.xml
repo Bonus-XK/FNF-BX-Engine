@@ -2,7 +2,7 @@
 <project>
 	<!-- _________________________ Application Settings _________________________ -->
 
-	<app title="FNF':Meteoric Engine" file="Meteoric" packageName="com.bonusxk.meteoric" package="com.bonusxk.meteoric" main="Main" version="0.2.8" company="Bonus-XK" />
+	<app title="Friday Night Funkin': SB Engine" file="SB Engine" packageName="com.stefan2008.sbengine" package="com.stefan2008.sbengine" main="Main" version="3.0.0" company="Stefan2008" />
 
 	<!--Switch Export with Unique ApplicationID and Icon-->
 	<set name="APP_ID" value="0x0100f6c013bbc000" />
@@ -17,16 +17,6 @@
 
 	<!--Minimum without FLX_NO_GAMEPAD: 11.8, without FLX_NO_NATIVE_CURSOR: 11.2-->
 	<set name="SWF_VERSION" value="11.8" />
-	
-	<!-- ______________________ PSYCH ENGINE CUSTOMIZATION ______________________ -->
-
-	<define name="MODS_ALLOWED" if="desktop" />
-	<define name="HSCRIPT_ALLOWED" if="desktop" />
-	<define name="LUA_ALLOWED" if="desktop" />
-	<define name="ACHIEVEMENTS_ALLOWED" />
-	<define name="VIDEOS_ALLOWED" if="windows || linux || android" unless="32bits"/>
-	<define name="PSYCH_WATERMARKS"/> <!-- DELETE THIS TO REMOVE WATERMARKS/DEV NAMES ON TITLE SCREEN -->
-	<define name="TITLE_SCREEN_EASTER_EGG" if="officialBuild"/> <!-- DELETE THE if="officialBuild" for enabling this on an unofficial build -->
 
 	<!-- ____________________________ Window Settings ___________________________ -->
 
@@ -40,7 +30,7 @@
 	<window if="desktop" orientation="landscape" fullscreen="false" resizable="true" vsync="false"/>
 
 	<!--Mobile-specific-->
-	<window if="mobile" orientation="landscape" fullscreen="true" width="0" height="0" resizable="false"/>
+	<window if="mobile" orientation="landscape" fullscreen="true" width="1280" height="720" resizable="false"/>
 
 	<!--Switch-specific-->
 	<window if="switch" orientation="landscape" fullscreen="true" width="0" height="0" resizable="true" />
@@ -52,17 +42,15 @@
 	<set name="BUILD_DIR" value="export/32bit" if="32bits" />
 
 	<classpath name="source" />
-
-	<!-- __________________________ Game Assets & Etc. __________________________ -->
 	
-	<!-- Turn on Crash Handler -->
-	<define name="CRASH_HANDLER" if="desktop release" />
+	<!-- PSYCH ENGINE CUSTOMIZATION -->
+	<define name="HSCRIPT_ALLOWED" if="desktop || android"  />
+	<define name="MODS_ALLOWED" if="desktop || android" />
+	<define name="LUA_ALLOWED" if="desktop || android"/>
+	<define name="VIDEOS_ALLOWED" if="web || windows || android" unless="32bits"/>
+	<define name="PSYCH_WATERMARKS"/> <!-- DELETE THIS TO REMOVE THE PSYCH LOGO FROM LOADING SCREEN -->
+	<define name="CRASH_HANDLER" if="desktop release || android" />
 
-	<!-- Preload Assets -->
-	<define name="PRELOAD_ALL" unless="web" />
-	<define name="NO_PRELOAD_ALL" unless="PRELOAD_ALL"/>
-
-	<assets path="assets/fonts" />
 	<assets path="assets/preload" rename="assets" exclude="*.ogg" if="web"/>
 	<assets path="assets/preload" rename="assets" exclude="*.mp3"  unless="web"/>
 	<section if="TITLE_SCREEN_EASTER_EGG">
@@ -73,9 +61,12 @@
 	<!-- DONT ENABLE THIS -->
 	<define name="CHECK_FOR_UPDATES" if="desktop officialBuild"/>
 
-	<!-- Week Assets -->
+	<!-- <define name="PRELOAD_ALL" /> -->
+	<define name="PRELOAD_ALL" unless="web" />
+	<define name="NO_PRELOAD_ALL" unless="PRELOAD_ALL"/>
+	
 	<library name="videos"        preload="true" />
-	<section if="PRELOAD_ALL">
+    <section if="PRELOAD_ALL">
 		<library name="songs"         preload="true" />
 		<library name="shared"        preload="true" />
 		<library name="week_assets"   preload="true" />
@@ -83,7 +74,7 @@
 	
 	<section if="NO_PRELOAD_ALL">
 		<library name="songs"         preload="false" />
-		<library name="shared"        preload="true" />
+		<library name="shared"        preload="false" />
 		<library name="week_assets"   preload="false" />
 	</section>
 	
@@ -94,9 +85,24 @@
 	<assets path="assets/shared"        library="shared"        exclude="*.mp3" unless="web"/>
 	<assets path="assets/week_assets"   library="week_assets"   rename="assets" exclude="*.ogg" if="web"/>
 	<assets path="assets/week_assets"   library="week_assets"   rename="assets" exclude="*.mp3" unless="web"/>
+	
+	<section if="MODS_ALLOWED">
+		<assets path='example_mods' rename='mods' embed='false'/>
+	</section>
+	<assets path="CHANGELOGS.md" rename='changelogs.txt' />
+	<!-- <template path='mods' /> -->
+	
+	<!-- assets path="CHANGELOG.md" rename='changelog.txt' -->
 
+	<!-- NOTE FOR FUTURE SELF SINCE FONTS ARE ALWAYS FUCKY 
+		TO FIX ONE OF THEM, I CONVERTED IT TO OTF. DUNNO IF YOU NEED TO
+		THEN UHHH I USED THE NAME OF THE FONT WITH SETFORMAT() ON THE TEXT!!!
+		NOT USING A DIRECT THING TO THE ASSET!!!
+	-->
+	<assets path="assets/fonts" />
 	<!-- _______________________________ Libraries ______________________________ -->
 
+	<haxedev set='webgl' />
 	<haxelib name="flixel" />
 	<haxelib name="flixel-ui" />
 	<haxelib name="flixel-addons" />
@@ -105,15 +111,24 @@
 	<haxelib name="linc_luajit" if="LUA_ALLOWED"/>
 	<haxelib name="SScript" if="HSCRIPT_ALLOWED"/>
 	<haxelib name="hxCodec" if="VIDEOS_ALLOWED"/>
+    <haxelib name="extension-androidtools" if="android"/>
+	<haxelib name="AndroidDialogs" if = "android"/>
+	<haxelib name="devicelanguage" if = "android"/>
 	<haxelib name="discord_rpc" if="desktop"/>
 	<haxelib name="tjson" />
-	<haxedef name="openflPos" />
+	<haxedef name="openflPos" if="desktop"/>
 	<haxedef name="hscriptPos" />
 
 	<!-- Enables a terminal log prompt on debug builds -->
-	<haxelib name="hxcpp-debug-server" if="debug"/>
+	<haxelib name="hxcpp-debug-server" if="desktop debug"  />
 	<haxedef name="HXC_LIBVLC_LOGGING" if="VIDEOS_ALLOWED debug" />
-	
+
+	<!-- <haxelib name="markdown" /> -->
+	<!-- <haxelib name="HtmlParser" /> -->
+
+	<!--In case you want to use nape with flixel-->
+	<!--<haxelib name="nape-haxe4" />-->
+
 	<!-- ______________________________ Haxedefines _____________________________ -->
 
 	<!--Enable the Flixel core recording system-->
@@ -152,19 +167,25 @@
 	<!--Used for Izzy Engine's crash handler-->
 	<haxedef name="HXCPP_CHECK_POINTER" if="CRASH_HANDLER" />
 	<haxedef name="HXCPP_STACK_LINE" if="CRASH_HANDLER" />
-	<haxedef name="HXCPP_STACK_TRACE" if="CRASH_HANDLER" />
-	<haxedef name='no-deprecation-warnings' />
-	
-	<!--Macro fixes-->
-	<haxeflag name="--macro" value="allowPackage('flash')" />
-	<haxeflag name="--macro" value="include('my.pack')" />
+
+	<!--Used to ignore no deprecreationed warning shits for TJSON and PlayState-->
+	<haxedef name="no-deprecation-warnings" unless="debug" />
+
+	<!-- _________________________________ Mobile Stuff _______________________________ -->
+	<config:android permission="android.permission.READ_EXTERNAL_STORAGE" if="android"/>
+	<config:android permission="android.permission.WRITE_EXTERNAL_STORAGE" if="android"/>
+        <config:android gradle-version="7.5.1" />
+        <config:android gradle-plugin="7.3.1" />
 
 	<!-- _________________________________ Custom _______________________________ -->
 
 	<!--Place custom nodes like icons here (higher priority to override the HaxeFlixel icon)-->
+
+	<assets path='applicationIcon/iconOG.png' rename='icon.png' if="linux" />
 	
-	<icon path="art/icon16.png" size='16'/>
-	<icon path="art/icon32.png" size='32'/>
-	<icon path="art/icon64.png" size='64'/>
-	<icon path="art/iconOG.png" />
+	<icon path="applicationIcon/icon16.png" size='16'/>
+	<icon path="applicationIcon/icon32.png" size='32'/>
+	<icon path="applicationIcon/icon64.png" size='64'/>
+	<icon path="applicationIcon/icon128.png" size='128'/>
+	<icon path="applicationIcon/iconOG.png" />
 </project>

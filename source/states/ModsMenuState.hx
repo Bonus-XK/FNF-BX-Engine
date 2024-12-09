@@ -6,7 +6,6 @@ import backend.Mods;
 import flixel.ui.FlxButton;
 import flixel.FlxBasic;
 import openfl.display.BitmapData;
-import openfl.Lib;
 import flash.geom.Rectangle;
 import lime.utils.Assets;
 import tjson.TJSON as Json;
@@ -35,7 +34,7 @@ class ModsMenuState extends MusicBeatState
 	var selector:AttachedSprite;
 	var descriptionTxt:FlxText;
 	var needaReset = false;
-	private static var curSelected:Int = 0;
+	private static var currentlySelected:Int = 0;
 	public static var defaultColor:FlxColor = 0xFF665AFF;
 
 	var buttonDown:FlxButton;
@@ -56,8 +55,6 @@ class ModsMenuState extends MusicBeatState
 
 	override function create()
 	{
-		Lib.application.window.title = "FNF':Meteoric Engine - Mods List";
-		
 		Paths.clearStoredMemory();
 		Paths.clearUnusedMemory();
 		WeekData.setDirectoryFromWeek();
@@ -72,8 +69,9 @@ class ModsMenuState extends MusicBeatState
 		add(bg);
 		bg.screenCenter();
 
-		noModsTxt = new FlxText(0, 0, FlxG.width, "你没有任何MOD安装在Meteoric Engine！\n但是模组可能已经加载！\n按下 Enter 打开香蕉网下载模组\n按下 ESC 返回主菜单", 48);
-		noModsTxt.setFormat(Paths.font("future.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		noModsTxt = new FlxText(0, 0, FlxG.width, "NO MODS INSTALLED\nPRESS BACK TO EXIT AND INSTALL A MOD", 48);
+		if(FlxG.random.bool(0.1)) noModsTxt.text += '\nBITCH.'; //meanie
+		noModsTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		noModsTxt.scrollFactor.set();
 		noModsTxt.borderSize = 2;
 		add(noModsTxt);
@@ -96,11 +94,11 @@ class ModsMenuState extends MusicBeatState
 
 		buttonToggle = new FlxButton(startX, 0, "ON", function()
 		{
-			if(mods[curSelected].restart)
+			if(mods[currentlySelected].restart)
 			{
 				needaReset = true;
 			}
-			modsList[curSelected][1] = !modsList[curSelected][1];
+			modsList[currentlySelected][1] = !modsList[currentlySelected][1];
 			updateButtonToggle();
 			FlxG.sound.play(Paths.sound('scrollMenu'), 0.6);
 		});
@@ -110,7 +108,7 @@ class ModsMenuState extends MusicBeatState
 		buttonsArray.push(buttonToggle);
 		visibleWhenHasMods.push(buttonToggle);
 
-		buttonToggle.label.setFormat(Paths.font("future.ttf"), 24, FlxColor.WHITE, CENTER);
+		buttonToggle.label.setFormat(Paths.font("vcr.ttf"), 24, FlxColor.WHITE, CENTER);
 		setAllLabelsOffset(buttonToggle, -15, 10);
 		startX -= 70;
 
@@ -124,7 +122,7 @@ class ModsMenuState extends MusicBeatState
 		add(buttonUp);
 		buttonsArray.push(buttonUp);
 		visibleWhenHasMods.push(buttonUp);
-		buttonUp.label.setFormat(Paths.font("future.ttf"), 24, FlxColor.BLACK, CENTER);
+		buttonUp.label.setFormat(Paths.font("vcr.ttf"), 24, FlxColor.BLACK, CENTER);
 		setAllLabelsOffset(buttonUp, -15, 10);
 		startX -= 70;
 
@@ -137,13 +135,13 @@ class ModsMenuState extends MusicBeatState
 		add(buttonDown);
 		buttonsArray.push(buttonDown);
 		visibleWhenHasMods.push(buttonDown);
-		buttonDown.label.setFormat(Paths.font("future.ttf"), 24, FlxColor.BLACK, CENTER);
+		buttonDown.label.setFormat(Paths.font("vcr.ttf"), 24, FlxColor.BLACK, CENTER);
 		setAllLabelsOffset(buttonDown, -15, 10);
 
 		startX -= 100;
 		buttonTop = new FlxButton(startX, 0, "TOP", function() {
-			var doRestart:Bool = (mods[0].restart || mods[curSelected].restart);
-			for (i in 0...curSelected) //so it shifts to the top instead of replacing the top one
+			var doRestart:Bool = (mods[0].restart || mods[currentlySelected].restart);
+			for (i in 0...currentlySelected) //so it shifts to the top instead of replacing the top one
 			{
 				moveMod(-1, true);
 			}
@@ -156,7 +154,7 @@ class ModsMenuState extends MusicBeatState
 		});
 		buttonTop.setGraphicSize(80, 50);
 		buttonTop.updateHitbox();
-		buttonTop.label.setFormat(Paths.font("future.ttf"), 24, FlxColor.BLACK, CENTER);
+		buttonTop.label.setFormat(Paths.font("vcr.ttf"), 24, FlxColor.BLACK, CENTER);
 		setAllLabelsOffset(buttonTop, 0, 10);
 		add(buttonTop);
 		buttonsArray.push(buttonTop);
@@ -182,7 +180,7 @@ class ModsMenuState extends MusicBeatState
 		});
 		buttonDisableAll.setGraphicSize(170, 50);
 		buttonDisableAll.updateHitbox();
-		buttonDisableAll.label.setFormat(Paths.font("future.ttf"), 24, FlxColor.BLACK, CENTER);
+		buttonDisableAll.label.setFormat(Paths.font("vcr.ttf"), 24, FlxColor.BLACK, CENTER);
 		buttonDisableAll.label.fieldWidth = 170;
 		setAllLabelsOffset(buttonDisableAll, 0, 10);
 		add(buttonDisableAll);
@@ -208,7 +206,7 @@ class ModsMenuState extends MusicBeatState
 		});
 		buttonEnableAll.setGraphicSize(170, 50);
 		buttonEnableAll.updateHitbox();
-		buttonEnableAll.label.setFormat(Paths.font("future.ttf"), 24, FlxColor.BLACK, CENTER);
+		buttonEnableAll.label.setFormat(Paths.font("vcr.ttf"), 24, FlxColor.BLACK, CENTER);
 		buttonEnableAll.label.fieldWidth = 170;
 		setAllLabelsOffset(buttonEnableAll, 0, 10);
 		add(buttonEnableAll);
@@ -227,14 +225,14 @@ class ModsMenuState extends MusicBeatState
 		installButton.updateHitbox();
 		installButton.color = FlxColor.GREEN;
 		installButton.label.fieldWidth = 135;
-		installButton.label.setFormat(Paths.font("future.ttf"), 16, FlxColor.WHITE, CENTER);
+		installButton.label.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, CENTER);
 		setAllLabelsOffset(installButton, 2, 24);
 		add(installButton);
 		startX -= 180;
 
 		removeButton = new FlxButton(startX, 620, "Delete Selected Mod", function()
 		{
-			var path = haxe.io.Path.join([Paths.mods(), modsList[curSelected][0]]);
+			var path = haxe.io.Path.join([Paths.mods(), modsList[currentlySelected][0]]);
 			if(FileSystem.exists(path) && FileSystem.isDirectory(path))
 			{
 				trace('Trying to delete directory ' + path);
@@ -242,16 +240,16 @@ class ModsMenuState extends MusicBeatState
 				{
 					FileSystem.deleteFile(path); //FUCK YOU HAXE WHY DONT YOU WORK WAAAAAAAAAAAAH
 
-					var icon = mods[curSelected].icon;
-					var alphabet = mods[curSelected].alphabet;
+					var icon = mods[currentlySelected].icon;
+					var alphabet = mods[currentlySelected].alphabet;
 					remove(icon);
 					remove(alphabet);
 					icon.destroy();
 					alphabet.destroy();
-					modsList.remove(modsList[curSelected]);
-					mods.remove(mods[curSelected]);
+					modsList.remove(modsList[currentlySelected]);
+					mods.remove(mods[currentlySelected]);
 
-					if(curSelected >= mods.length) --curSelected;
+					if(currentlySelected >= mods.length) --currentlySelected;
 					changeSelection();
 				}
 				catch(e)
@@ -264,14 +262,14 @@ class ModsMenuState extends MusicBeatState
 		removeButton.updateHitbox();
 		removeButton.color = FlxColor.RED;
 		removeButton.label.fieldWidth = 135;
-		removeButton.label.setFormat(Paths.font("future.ttf"), 16, FlxColor.WHITE, CENTER);
+		removeButton.label.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, CENTER);
 		setAllLabelsOffset(removeButton, 2, 15);
 		add(removeButton);
 		visibleWhenHasMods.push(removeButton);*/
 
 		///////
 		descriptionTxt = new FlxText(148, 0, FlxG.width - 216, "", 32);
-		descriptionTxt.setFormat(Paths.font("future.ttf"), 32, FlxColor.WHITE, LEFT);
+		descriptionTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, LEFT);
 		descriptionTxt.scrollFactor.set();
 		add(descriptionTxt);
 		visibleWhenHasMods.push(descriptionTxt);
@@ -323,12 +321,12 @@ class ModsMenuState extends MusicBeatState
 			i++;
 		}
 
-		if(curSelected >= mods.length) curSelected = 0;
+		if(currentlySelected >= mods.length) currentlySelected = 0;
 
 		if(mods.length < 1)
 			bg.color = defaultColor;
 		else
-			bg.color = mods[curSelected].color;
+			bg.color = mods[currentlySelected].color;
 
 		intendedColor = bg.color;
 		changeSelection();
@@ -336,6 +334,10 @@ class ModsMenuState extends MusicBeatState
 		FlxG.sound.play(Paths.sound('scrollMenu'));
 
 		FlxG.mouse.visible = true;
+
+    #if mobile
+    addVirtualPad(UP_DOWN, B);
+    #end
 
 		super.create();
 	}
@@ -349,7 +351,7 @@ class ModsMenuState extends MusicBeatState
 	}*/
 	function updateButtonToggle()
 	{
-		if (modsList[curSelected][1])
+		if (modsList[currentlySelected][1])
 		{
 			buttonToggle.label.text = 'ON';
 			buttonToggle.color = FlxColor.GREEN;
@@ -367,7 +369,7 @@ class ModsMenuState extends MusicBeatState
 		{
 			var doRestart:Bool = (mods[0].restart);
 
-			var newPos:Int = curSelected + change;
+			var newPos:Int = currentlySelected + change;
 			if(newPos < 0)
 			{
 				modsList.push(modsList.shift());
@@ -380,17 +382,17 @@ class ModsMenuState extends MusicBeatState
 			}
 			else
 			{
-				var lastArray:Array<Dynamic> = modsList[curSelected];
-				modsList[curSelected] = modsList[newPos];
+				var lastArray:Array<Dynamic> = modsList[currentlySelected];
+				modsList[currentlySelected] = modsList[newPos];
 				modsList[newPos] = lastArray;
 
-				var lastMod:ModMetadata = mods[curSelected];
-				mods[curSelected] = mods[newPos];
+				var lastMod:ModMetadata = mods[currentlySelected];
+				mods[currentlySelected] = mods[newPos];
 				mods[newPos] = lastMod;
 			}
 			changeSelection(change);
 
-			if(!doRestart) doRestart = mods[curSelected].restart;
+			if(!doRestart) doRestart = mods[currentlySelected].restart;
 			if(!skipResetCheck && doRestart) needaReset = true;
 		}
 	}
@@ -404,7 +406,7 @@ class ModsMenuState extends MusicBeatState
 			fileStr += values[0] + '|' + (values[1] ? '1' : '0');
 		}
 
-		var path:String = 'modsList.txt';
+		var path:String = SUtil.getPath() + 'modsList.txt';
 		File.saveContent(path, fileStr);
 		Mods.pushGlobalMods();
 	}
@@ -419,11 +421,6 @@ class ModsMenuState extends MusicBeatState
 			noModsTxt.alpha = 1 - Math.sin((Math.PI * noModsSine) / 180);
 		}
 
-        if (controls.ACCEPT)
-		{
-			CoolUtil.browserLoad('https://gamebanana.com/');
-		}
-		
 		if(canExit && controls.BACK)
 		{
 			if(colorTween != null) {
@@ -486,13 +483,13 @@ class ModsMenuState extends MusicBeatState
 		}
 		if(noMods) return;
 
-		curSelected += change;
-		if(curSelected < 0)
-			curSelected = mods.length - 1;
-		else if(curSelected >= mods.length)
-			curSelected = 0;
+		currentlySelected += change;
+		if(currentlySelected < 0)
+			currentlySelected = mods.length - 1;
+		else if(currentlySelected >= mods.length)
+			currentlySelected = 0;
 
-		var newColor:Int = mods[curSelected].color;
+		var newColor:Int = mods[currentlySelected].color;
 		if(newColor != intendedColor) {
 			if(colorTween != null) {
 				colorTween.cancel();
@@ -509,7 +506,7 @@ class ModsMenuState extends MusicBeatState
 		for (mod in mods)
 		{
 			mod.alphabet.alpha = 0.6;
-			if(i == curSelected)
+			if(i == currentlySelected)
 			{
 				mod.alphabet.alpha = 1;
 				selector.sprTracker = mod.alphabet;
@@ -541,8 +538,8 @@ class ModsMenuState extends MusicBeatState
 		var i:Int = 0;
 		for (mod in mods)
 		{
-			var intendedPos:Float = (i - curSelected) * 225 + 200;
-			if(i > curSelected) intendedPos += 225;
+			var intendedPos:Float = (i - currentlySelected) * 225 + 200;
+			if(i > currentlySelected) intendedPos += 225;
 			if(elapsed == -1)
 			{
 				mod.alphabet.y = intendedPos;
@@ -552,7 +549,7 @@ class ModsMenuState extends MusicBeatState
 				mod.alphabet.y = FlxMath.lerp(mod.alphabet.y, intendedPos, FlxMath.bound(elapsed * 12, 0, 1));
 			}
 
-			if(i == curSelected)
+			if(i == currentlySelected)
 			{
 				descriptionTxt.y = mod.alphabet.y + 160;
 				for (button in buttonsArray)
@@ -624,7 +621,7 @@ class ModsMenuState extends MusicBeatState
 			var rawZip:String = File.getContent(fullPath);
 			if(rawZip != null)
 			{
-				MusicBeatState.resetState();
+				FlxG.resetState();
 				var uncompressingFile:Bytes = new Uncompress().run(File.getBytes(rawZip));
 				if (uncompressingFile.done)
 				{

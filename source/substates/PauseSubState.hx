@@ -11,16 +11,21 @@ import flixel.util.FlxStringUtil;
 import states.StoryMenuState;
 import states.FreeplayState;
 import options.OptionsState;
-import openfl.Lib;
 
 class PauseSubState extends MusicBeatSubstate
 {
 	var grpMenuShit:FlxTypedGroup<Alphabet>;
 
+	var bg:FlxSprite;
+	var bgGrid:FlxBackdrop;
+	var levelInfo:FlxText;
+	var levelDifficulty:FlxText;
+	var blueballedTxt:FlxText;
+	var fadeOutSpr:FlxSprite;
 	var menuItems:Array<String> = [];
-	var menuItemsOG:Array<String> = ['Back to Game', 'Restart Song', 'Change Difficulty', 'AutoPlay', 'Options', 'Exit to menu'];
+	var menuItemsOG:Array<String> = ['Resume', 'Restart Song', 'Change Difficulty', 'Chart Editor', 'Options', 'Exit to menu'];
 	var difficultyChoices = [];
-	var curSelected:Int = 0;
+	var currentlySelected:Int = 0;
 
 	var pauseMusic:FlxSound;
 	var practiceText:FlxText;
@@ -30,6 +35,34 @@ class PauseSubState extends MusicBeatSubstate
 
 	var missingTextBG:FlxSprite;
 	var missingText:FlxText;
+
+	var settings = {
+		bgColour: 'default',
+	
+		backdropSpeedX: 50,
+		backdropSpeedY: 50,
+		
+		optionTweenTime: 0.1,
+		selectTweenTime: 0.25,
+		
+		openMenuTweenTime: 0.25
+	};
+	
+	var colours = [
+		'default' => 0xFF000000,
+		'pink' => 0xFFFA86C4,
+		'crimson' => 0xFF870007,
+		'turquoise' => 0xFF30D5C8,
+		'red' => 0xFFBB0000,
+		'green' => 0xFF00AA00,
+		'blue' => 0xFF0000BB,
+		'purple' => 0xFF592693,
+		'yellow' => 0xFFC8B003,
+		'brown' => 0xFF664229,
+		'orange' => 0xFFFFA500,
+	
+		'custom' => 0xFF000000
+	];
 
 	public static var songName:String = '';
 
@@ -49,6 +82,8 @@ class PauseSubState extends MusicBeatSubstate
 				menuItemsOG.insert(3, 'Skip Time');
 			}
 			menuItemsOG.insert(3 + num, 'End Song');
+			menuItemsOG.insert(4 + num, 'Toggle Practice Mode');
+			menuItemsOG.insert(5 + num, 'Toggle Botplay');
 		}
 		menuItems = menuItemsOG;
 
@@ -70,40 +105,49 @@ class PauseSubState extends MusicBeatSubstate
 
 		FlxG.sound.list.add(pauseMusic);
 
-		var bg:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
+		bg = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, colours[settings.bgColour.toLowerCase()]);
 		bg.alpha = 0;
 		bg.scrollFactor.set();
 		add(bg);
 
-		var levelInfo:FlxText = new FlxText(20, 15, 0, "游玩曲目：" + PlayState.SONG.song, 32);
+		bgGrid = new FlxBackdrop(FlxGridOverlay.createGrid(80, 80, 160, 160, true, 0x11FFFFFF, 0x0));
+		bgGrid.alpha = 0;
+		bgGrid.velocity.set(175, 175);
+		add(bgGrid);
+
+		levelInfo = new FlxText(20, 15, 0, "Song: " + PlayState.SONG.song, 32);
 		levelInfo.scrollFactor.set();
-		levelInfo.setFormat(Paths.font("future.ttf"), 32);
+		levelInfo.setFormat(Paths.font("vcr.ttf"), 32);
 		levelInfo.updateHitbox();
 		add(levelInfo);
 
-		var levelDifficulty:FlxText = new FlxText(20, 15 + 32, 0, "游玩难度：" + Difficulty.getString().toUpperCase(), 32);
+		levelDifficulty = new FlxText(20, 15 + 32, 0, "Difficulty: " + Difficulty.getString().toUpperCase(), 32);
 		levelDifficulty.scrollFactor.set();
-		levelDifficulty.setFormat(Paths.font('future.ttf'), 32);
+		levelDifficulty.setFormat(Paths.font('vcr.ttf'), 32);
 		levelDifficulty.updateHitbox();
 		add(levelDifficulty);
 
-		var blueballedTxt:FlxText = new FlxText(20, 15 + 64, 0, "死亡次数：" + PlayState.deathCounter, 32);
+		blueballedTxt = new FlxText(20, 15 + 64, 0, "Blueballed: " + PlayState.deathCounter, 32);
 		blueballedTxt.scrollFactor.set();
-		blueballedTxt.setFormat(Paths.font('future.ttf'), 32);
+		blueballedTxt.setFormat(Paths.font('vcr.ttf'), 32);
 		blueballedTxt.updateHitbox();
 		add(blueballedTxt);
 
-		practiceText = new FlxText(20, 15 + 101, 0, "上帝模式已激活！", 32);
+		fadeOutSpr = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, 0xFF000000);
+		fadeOutSpr.alpha = 0;
+		add(fadeOutSpr);
+
+		practiceText = new FlxText(20, 15 + 101, 0, "PRACTICE MODE", 32);
 		practiceText.scrollFactor.set();
-		practiceText.setFormat(Paths.font('future.ttf'), 32);
+		practiceText.setFormat(Paths.font('vcr.ttf'), 32);
 		practiceText.x = FlxG.width - (practiceText.width + 20);
 		practiceText.updateHitbox();
 		practiceText.visible = PlayState.instance.practiceMode;
 		add(practiceText);
 
-		var chartingText:FlxText = new FlxText(20, 15 + 101, 0, "编铺模式", 32);
+		var chartingText:FlxText = new FlxText(20, 15 + 101, 0, "CHARTING MODE", 32);
 		chartingText.scrollFactor.set();
-		chartingText.setFormat(Paths.font('future.ttf'), 32);
+		chartingText.setFormat(Paths.font('vcr.ttf'), 32);
 		chartingText.x = FlxG.width - (chartingText.width + 20);
 		chartingText.y = FlxG.height - (chartingText.height + 20);
 		chartingText.updateHitbox();
@@ -119,6 +163,8 @@ class PauseSubState extends MusicBeatSubstate
 		blueballedTxt.x = FlxG.width - (blueballedTxt.width + 20);
 
 		FlxTween.tween(bg, {alpha: 0.6}, 0.4, {ease: FlxEase.quartInOut});
+		FlxTween.tween(bgGrid, {alpha: 1}, settings.openMenuTweenTime, {ease: FlxEase.quadOut});
+		FlxTween.tween(bgGrid.velocity, {x: settings.backdropSpeedX, y: settings.backdropSpeedY}, settings.openMenuTweenTime + 0.25, {ease: FlxEase.quadOut});
 		FlxTween.tween(levelInfo, {alpha: 1, y: 20}, 0.4, {ease: FlxEase.quartInOut, startDelay: 0.3});
 		FlxTween.tween(levelDifficulty, {alpha: 1, y: levelDifficulty.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: 0.5});
 		FlxTween.tween(blueballedTxt, {alpha: 1, y: blueballedTxt.y + 5}, 0.4, {ease: FlxEase.quartInOut, startDelay: 0.7});
@@ -132,15 +178,18 @@ class PauseSubState extends MusicBeatSubstate
 		add(missingTextBG);
 		
 		missingText = new FlxText(50, 0, FlxG.width - 100, '', 24);
-		missingText.setFormat(Paths.font("future.ttf"), 24, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		missingText.setFormat(Paths.font("vcr.ttf"), 24, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		missingText.scrollFactor.set();
 		missingText.visible = false;
 		add(missingText);
 
+		#if mobile
+		PlayState.chartingMode ? addVirtualPad(FULL, A) : addVirtualPad(UP_DOWN, A);
+		addPadCamera();
+		#end
+
 		regenMenu();
 		cameras = [FlxG.cameras.list[FlxG.cameras.list.length - 1]];
-
-	    Lib.application.window.title = "FNF':Meteoric Engine - Pause";
 	}
 
 	var holdTime:Float = 0;
@@ -167,7 +216,7 @@ class PauseSubState extends MusicBeatSubstate
 			changeSelection(1);
 		}
 
-		var daSelected:String = menuItems[curSelected];
+		var daSelected:String = menuItems[currentlySelected];
 		switch (daSelected)
 		{
 			case 'Skip Time':
@@ -203,24 +252,24 @@ class PauseSubState extends MusicBeatSubstate
 			if (menuItems == difficultyChoices)
 			{
 				try{
-					if(menuItems.length - 1 != curSelected && difficultyChoices.contains(daSelected)) {
+					if(menuItems.length - 1 != currentlySelected && difficultyChoices.contains(daSelected)) {
 
 						var name:String = PlayState.SONG.song;
-						var poop = Highscore.formatSong(name, curSelected);
+						var poop = Highscore.formatSong(name, currentlySelected);
 						PlayState.SONG = Song.loadFromJson(poop, name);
-						PlayState.storyDifficulty = curSelected;
-						MusicBeatState.resetState();
+						PlayState.storyDifficulty = currentlySelected;
+						FlxG.resetState();
 						FlxG.sound.music.volume = 0;
 						PlayState.changedDifficulty = true;
 						PlayState.chartingMode = false;
 						return;
 					}					
 				}catch(e:Dynamic){
-					trace('错误！$e');
+					trace('ERROR! $e');
 
 					var errorStr:String = e.toString();
-					if(errorStr.startsWith('[file_contents,assets/data/')) errorStr = '丢失的文件：' + errorStr.substring(27, errorStr.length-1); //Missing chart
-					missingText.text = '加载铺面文件时出错！\n$errorStr';
+					if(errorStr.startsWith('[file_contents,assets/data/')) errorStr = 'Missing file: ' + errorStr.substring(27, errorStr.length-1); //Missing chart
+					missingText.text = 'ERROR WHILE LOADING CHART:\n$errorStr';
 					missingText.screenCenter(Y);
 					missingText.visible = true;
 					missingTextBG.visible = true;
@@ -237,18 +286,48 @@ class PauseSubState extends MusicBeatSubstate
 
 			switch (daSelected)
 			{
-				case "Back to Game":
+				case "Resume":
 					close();
-					Lib.application.window.title = "FNF':Meteoric Engine - Playing: " + PlayState.SONG.song;
+					FlxTween.tween(bgGrid.velocity, {x: 175, y: 175}, 0.05, {ease: FlxEase.quadIn});
+					FlxTween.tween(levelInfo, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(levelDifficulty, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(blueballedTxt, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(bgGrid, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(fadeOutSpr, {alpha: 1}, 0.25, {ease: FlxEase.quadOut});
 				case 'Change Difficulty':
 					menuItems = difficultyChoices;
 					deleteSkipTimeText();
 					regenMenu();
+				case 'Chart Editor':
+					MusicBeatState.switchState(new states.editors.ChartingState());
+					PlayState.chartingMode = true;
+					FlxTween.tween(bgGrid.velocity, {x: 175, y: 175}, 0.05, {ease: FlxEase.quadIn});
+					FlxTween.tween(levelInfo, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(levelDifficulty, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(blueballedTxt, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(bgGrid, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(fadeOutSpr, {alpha: 1}, 0.25, {ease: FlxEase.quadOut});
+				case 'Toggle Practice Mode':
+					PlayState.instance.practiceMode = !PlayState.instance.practiceMode;
+					PlayState.changedDifficulty = true;
+					practiceText.visible = PlayState.instance.practiceMode;
 				case "Restart Song":
 					restartSong();
+					FlxTween.tween(bgGrid.velocity, {x: 175, y: 175}, 0.05, {ease: FlxEase.quadIn});
+					FlxTween.tween(levelInfo, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(levelDifficulty, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(blueballedTxt, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(bgGrid, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(fadeOutSpr, {alpha: 1}, 0.25, {ease: FlxEase.quadOut});
 				case "Leave Charting Mode":
 					restartSong();
 					PlayState.chartingMode = false;
+					FlxTween.tween(bgGrid.velocity, {x: 175, y: 175}, 0.05, {ease: FlxEase.quadIn});
+					FlxTween.tween(levelInfo, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(levelDifficulty, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(blueballedTxt, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(bgGrid, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(fadeOutSpr, {alpha: 1}, 0.25, {ease: FlxEase.quadOut});
 				case 'Skip Time':
 					if(curTime < Conductor.songPosition)
 					{
@@ -269,7 +348,13 @@ class PauseSubState extends MusicBeatSubstate
 					PlayState.instance.notes.clear();
 					PlayState.instance.unspawnNotes = [];
 					PlayState.instance.finishSong(true);
-				case 'AutoPlay':
+					FlxTween.tween(bgGrid.velocity, {x: 175, y: 175}, 0.05, {ease: FlxEase.quadIn});
+					FlxTween.tween(levelInfo, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(levelDifficulty, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(blueballedTxt, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(bgGrid, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(fadeOutSpr, {alpha: 1}, 0.25, {ease: FlxEase.quadOut});
+				case 'Toggle Botplay':
 					PlayState.instance.cpuControlled = !PlayState.instance.cpuControlled;
 					PlayState.changedDifficulty = true;
 					PlayState.instance.botplayTxt.visible = PlayState.instance.cpuControlled;
@@ -286,6 +371,12 @@ class PauseSubState extends MusicBeatSubstate
 						FlxG.sound.music.time = pauseMusic.time;
 					}
 					OptionsState.onPlayState = true;
+					FlxTween.tween(bgGrid.velocity, {x: 175, y: 175}, 0.05, {ease: FlxEase.quadIn});
+					FlxTween.tween(levelInfo, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(levelDifficulty, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(blueballedTxt, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(bgGrid, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(fadeOutSpr, {alpha: 1}, 0.25, {ease: FlxEase.quadOut});
 				case "Exit to menu":
 					#if desktop DiscordClient.resetClientID(); #end
 					PlayState.deathCounter = 0;
@@ -298,10 +389,17 @@ class PauseSubState extends MusicBeatSubstate
 						MusicBeatState.switchState(new FreeplayState());
 					}
 					PlayState.cancelMusicFadeTween();
-					FlxG.sound.playMusic(Paths.music('freakyMenu'));
+					FlxG.sound.playMusic(Paths.music('freakyMenu-' + ClientPrefs.data.mainMenuMusic));
 					PlayState.changedDifficulty = false;
 					PlayState.chartingMode = false;
 					FlxG.camera.followLerp = 0;
+					FlxTween.tween(bg, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(bgGrid.velocity, {x: 175, y: 175}, 0.05, {ease: FlxEase.quadIn});
+					FlxTween.tween(levelInfo, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(levelDifficulty, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+					FlxTween.tween(blueballedTxt, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+				FlxTween.tween(bgGrid, {alpha: 0}, 0.25, {ease: FlxEase.quadOut});
+			FlxTween.tween(fadeOutSpr, {alpha: 1}, 0.25, {ease: FlxEase.quadOut});
 			}
 		}
 	}
@@ -329,7 +427,7 @@ class PauseSubState extends MusicBeatSubstate
 			FlxTransitionableState.skipNextTransIn = true;
 			FlxTransitionableState.skipNextTransOut = true;
 		}
-		MusicBeatState.resetState();
+		FlxG.resetState();
 	}
 
 	override function destroy()
@@ -341,20 +439,20 @@ class PauseSubState extends MusicBeatSubstate
 
 	function changeSelection(change:Int = 0):Void
 	{
-		curSelected += change;
+		currentlySelected += change;
 
 		FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
 
-		if (curSelected < 0)
-			curSelected = menuItems.length - 1;
-		if (curSelected >= menuItems.length)
-			curSelected = 0;
+		if (currentlySelected < 0)
+			currentlySelected = menuItems.length - 1;
+		if (currentlySelected >= menuItems.length)
+			currentlySelected = 0;
 
 		var bullShit:Int = 0;
 
 		for (item in grpMenuShit.members)
 		{
-			item.targetY = bullShit - curSelected;
+			item.targetY = bullShit - currentlySelected;
 			bullShit++;
 
 			item.alpha = 0.6;
@@ -393,7 +491,7 @@ class PauseSubState extends MusicBeatSubstate
 			if(menuItems[i] == 'Skip Time')
 			{
 				skipTimeText = new FlxText(0, 0, 0, '', 64);
-				skipTimeText.setFormat(Paths.font("future.ttf"), 64, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+				skipTimeText.setFormat(Paths.font("vcr.ttf"), 64, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 				skipTimeText.scrollFactor.set();
 				skipTimeText.borderSize = 2;
 				skipTimeTracker = item;
@@ -403,7 +501,7 @@ class PauseSubState extends MusicBeatSubstate
 				updateSkipTimeText();
 			}
 		}
-		curSelected = 0;
+		currentlySelected = 0;
 		changeSelection();
 	}
 	

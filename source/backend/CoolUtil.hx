@@ -22,12 +22,20 @@ class CoolUtil
 	inline public static function capitalize(text:String)
 		return text.charAt(0).toUpperCase() + text.substr(1).toLowerCase();
 
-	inline public static function coolTextFile(path:String):Array<String>
+	inline public static function boundTo(value:Float, min:Float, max:Float):Float {
+		return Math.max(min, Math.min(max, value));
+	}
+
+	inline public static function coolTextFile(path:String, ?android:Bool = true):Array<String>
 	{
 		var daList:String = null;
 		#if (sys && MODS_ALLOWED)
 		var formatted:Array<String> = path.split(':'); //prevent "shared:", "preload:" and other library names on file path
-		path = formatted[formatted.length-1];
+		if (android)
+			path = SUtil.getPath() + formatted[formatted.length-1];
+		else
+			path = formatted[formatted.length-1];
+
 		if(FileSystem.exists(path)) daList = File.getContent(path);
 		#else
 		if(Assets.exists(path)) daList = Assets.getText(path);
@@ -44,6 +52,56 @@ class CoolUtil
 		var colorNum:Null<FlxColor> = FlxColor.fromString(color);
 		if(colorNum == null) colorNum = FlxColor.fromString('#$color');
 		return colorNum != null ? colorNum : FlxColor.WHITE;
+	}
+
+	public static function formatMemory(num:UInt):String {
+		var size:Float = num;
+		var data = 0;
+		var dataTexts = ["B", "KB", "MB", "GB"];
+		while (size > 1024 && data < dataTexts.length - 1) {
+			data++;
+			size = size / 1024;
+		}
+
+		size = Math.round(size * 100) / 100;
+		var formatSize:String = formatAccuracy(size);
+		return formatSize + " " + dataTexts[data];
+	}
+
+	public static function formatAccuracy(value:Float) {
+		var conversion:Map<String, String> = [
+			'0' => '0.00',
+			'0.0' => '0.00',
+			'0.00' => '0.00',
+			'00' => '00.00',
+			'00.0' => '00.00',
+			'00.00' => '00.00', // gotta do these as well because lazy
+			'000' => '000.00'
+		]; // these are to ensure you're getting the right values, instead of using complex if statements depending on string length
+
+		var stringVal:String = Std.string(value);
+		var converVal:String = '';
+		for (i in 0...stringVal.length) {
+			if (stringVal.charAt(i) == '.')
+				converVal += '.';
+			else
+				converVal += '0';
+		}
+
+		var wantedConversion:String = conversion.get(converVal);
+		var convertedValue:String = '';
+
+		for (i in 0...wantedConversion.length) {
+			if (stringVal.charAt(i) == '')
+				convertedValue += wantedConversion.charAt(i);
+			else
+				convertedValue += stringVal.charAt(i);
+		}
+
+		if (convertedValue.length == 0)
+			return '$value';
+
+		return convertedValue;
 	}
 
 	inline public static function listFromString(string:String):Array<String>
@@ -119,10 +177,8 @@ class CoolUtil
 		so Base Psych saves won't conflict with yours
 		@BeastlyGabi
 	**/
-	inline public static function getSavePath(folder:String = 'ShadowMario'):String {
+	inline public static function getSavePath(folder:String = 'Stefan2008'):String {
 		@:privateAccess
-		return #if (flixel < "5.0.0") folder #else FlxG.stage.application.meta.get('company')
-			+ '/'
-			+ FlxSave.validate(FlxG.stage.application.meta.get('file')) #end;
+		return #if (flixel < "5.0.0") folder #else FlxG.stage.application.meta.get('company') + ' / ' + FlxSave.validate(FlxG.stage.application.meta.get('file')) #end;
 	}
 }

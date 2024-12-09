@@ -3,6 +3,9 @@ package psychlua;
 #if (!flash && sys)
 import flixel.addons.display.FlxRuntimeShader;
 #end
+#if !flash
+import shaders.Shaders;
+#end
 
 class ShaderFunctions
 {
@@ -10,11 +13,11 @@ class ShaderFunctions
 	{
 		var lua = funk.lua;
 		// shader shit
-		funk.addLocalCallback("initLuaShader", function(name:String, ?glslVersion:Int = 120) {
+		funk.addLocalCallback("initLuaShader", function(name:String, #if android ?glslVersion:Int = 100 #else ?glslVersion:Int = 120 #end) {
 			if(!ClientPrefs.data.shaders) return false;
 
 			#if (!flash && MODS_ALLOWED && sys)
-			return funk.initLuaShader(name, glslVersion);
+			return funk.initLuaShader(name);
 			#else
 			FunkinLua.luaTrace("initLuaShader: Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
 			#end
@@ -263,6 +266,92 @@ class ShaderFunctions
 			return false;
 			#end
 		});
+
+		// SHADER freak
+		if (ClientPrefs.data.shaders == true) {
+			funk.set("addChromaticEffect", function(object:String, chromeOffset:Float = 0.005) {
+				var shader = new ChromaticAberrationEffect(chromeOffset);
+            	PlayState.instance.addLuaShaderToCamera(object, shader);
+	    	});
+
+        	funk.set("addScanlineEffect", function(object:String, lockAlpha:Bool=false) {
+				var shader = new ScanlineEffect(lockAlpha);
+        		PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+        	funk.set("addGrainEffect", function(object:String, grainSize:Float, lumAmount:Float, lockAlpha:Bool=false) {
+				var shader = new GrainEffect(grainSize,lumAmount,lockAlpha);
+	    		PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+        	funk.set("addTiltshiftEffect", function(object:String, blurAmount:Float, center:Float) {
+				var shader = new TiltshiftEffect(blurAmount, center);
+            	PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+        	funk.set("addVCREffect", function(object:String,glitchFactor:Float = 0.0,distortion:Bool=true,perspectiveOn:Bool=true,vignetteMoving:Bool=true) {
+				var shader = new VCRDistortionEffect(glitchFactor,distortion,perspectiveOn,vignetteMoving);
+            	PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+        	funk.set("addGlitchEffect", function(object:String,waveSpeed:Float = 0.1,waveFrq:Float = 0.1,waveAmp:Float = 0.1) {
+				var shader = new GlitchEffect(waveSpeed,waveFrq,waveAmp);
+            	PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+			funk.set("addWiggleEffect", function(camera:String, wiggleEffectType:String = 'dreamyEffect', waveSpeed:Float = 2.25, waveFrq:Float = 5, waveAmp:Float = 0.1) {
+				switch (wiggleEffectType) {
+					case 'dreamyEffect':
+						PlayState.instance.addLuaShaderToCamera(camera, new WiggleEffectDreamy(waveSpeed, waveFrq, waveAmp));
+					
+					case 'wavyEffect':
+						PlayState.instance.addLuaShaderToCamera(camera, new WiggleEffectWavy(waveSpeed = 1.25, waveFrq = 3, waveAmp = 0.2));
+					
+					case 'horizontalEffect':
+						PlayState.instance.addLuaShaderToCamera(camera, new WiggleEffectHorizontal(waveSpeed, waveFrq, waveAmp));
+					
+					case 'verticalEffect':
+						PlayState.instance.addLuaShaderToCamera(camera, new WiggleEffectVertical(waveSpeed, waveFrq, waveAmp));
+					
+					case 'flagEffect':
+						PlayState.instance.addLuaShaderToCamera(camera, new WiggleEffectFlag(waveSpeed, waveFrq, waveAmp));
+				}
+			});
+
+			funk.set("addPulseEffect", function(object:String,waveSpeed:Float = 0.1,waveFrq:Float = 0.1,waveAmp:Float = 0.1) {
+				var shader = new PulseEffect(waveSpeed,waveFrq,waveAmp);
+            	PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+			funk.set("addDistortionEffect", function(object:String,waveSpeed:Float = 0.1,waveFrq:Float = 0.1,waveAmp:Float = 0.1) {
+				var shader = new DistortBGEffect(waveSpeed,waveFrq,waveAmp);
+            	PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+			funk.set("addInvertEffect", function(object:String,lockAlpha:Bool=false) {
+				var shader = new InvertColorsEffect(lockAlpha);
+            	PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+			funk.set("addGrayscaleEffect", function(object:String) {
+				var shader = new GreyscaleEffect();
+            	PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+			funk.set("add3DEffect", function(object:String,xrotation:Float=0,yrotation:Float=0,zrotation:Float=0,depth:Float=0) {
+				var shader = new ThreeDEffect(xrotation,yrotation,zrotation,depth);
+            	PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+			funk.set("addBloomEffect", function(object:String,intensity:Float = 0.35,blurSize:Float=1.0) {
+				var shader = new BloomEffect(blurSize/512.0,intensity);
+            	PlayState.instance.addLuaShaderToCamera(object, shader);
+        	});
+
+			funk.set("clearEffects", function(object:String) {
+				PlayState.instance.clearShaderFromCamera(object);
+			});
+		}
 	}
 	
 	#if (!flash && sys)
@@ -281,4 +370,17 @@ class ShaderFunctions
 		return cast (target.shader, FlxRuntimeShader);
 	}
 	#end
+
+	public static function formatShaderTag(tag:String):String {
+		var split:Array<String> = tag.split('');
+		for(letter in split){
+			letter = letter.toLowerCase();
+		}
+		split[0] = split[0].toUpperCase();
+		var results:String = split.join('');
+		results.replace('-', '');
+		results.replace('_', '');
+		results.replace(' ', '');
+		return results;
+	}
 }

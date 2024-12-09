@@ -5,28 +5,22 @@ import objects.Character;
 class GraphicsSettingsSubState extends BaseOptionsMenu
 {
 	var antialiasingOption:Int;
-	var boyfriend:Character = null;
 	public function new()
 	{
+		Application.current.window.title = "Friday Night Funkin': SB Engine v" + MainMenuState.sbEngineVersion + " - Options Menu (In Graphics Settings Menu)";
+
 		title = 'Graphics';
 		rpcTitle = 'Graphics Settings Menu'; //for Discord Rich Presence
 
-		boyfriend = new Character(840, 170, 'bf', true);
-		boyfriend.setGraphicSize(Std.int(boyfriend.width * 0.75));
-		boyfriend.updateHitbox();
-		boyfriend.dance();
-		boyfriend.animation.finishCallback = function (name:String) boyfriend.dance();
-		boyfriend.visible = false;
-
 		//I'd suggest using "Low Quality" as an example for making your own option since it is the simplest here
 		var option:Option = new Option('Low Quality', //Name
-			'如果选中，则禁用一些背景细节，减少加载时间并提高性能', //Description
+			'If checked, disables some background details,\ndecreases loading times and improves performance.', //Description
 			'lowQuality', //Save data variable name
 			'bool'); //Variable type
 		addOption(option);
 
 		var option:Option = new Option('Anti-Aliasing',
-			'如果未选中，则禁用抗锯齿，以更清晰的视觉效果为代价提高性能',
+			'If unchecked, disables anti-aliasing, increases performance\nat the cost of sharper visuals.',
 			'antialiasing',
 			'bool');
 		option.onChange = onChangeAntiAliasing; //Changing onChange is only needed if you want to make a special interaction after it changes the value
@@ -34,32 +28,32 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		antialiasingOption = optionsArray.length-1;
 
 		var option:Option = new Option('Shaders', //Name
-			"如果未选中，则禁用光影。它用于一些视觉效果，也用于较弱的PC的CPU密集型", //Description
+			"If unchecked, disables shaders.\nIt's used for some visual effects, and also CPU intensive for weaker PCs.", //Description
 			'shaders',
 			'bool');
 		addOption(option);
 
 		var option:Option = new Option('GPU Caching', //Name
-			"如果选中，则允许GPU用于缓存纹理，从而减少RAM使用。如果你有一张糟糕的显卡，不要勾选它", //Description
+			"If checked, allows the GPU to be used for caching textures, decreasing RAM usage.\nDon't turn this on if you have a shitty Graphics Card.", //Description
 			'cacheOnGPU',
 			'bool');
 		addOption(option);
 
 		#if !html5 //Apparently other framerates isn't correctly supported on Browser? Probably it has some V-Sync shit enabled by default, idk
 		var option:Option = new Option('Framerate',
-			"更改你的游戏显示帧数",
+			"Pretty self explanatory, isn't it?",
 			'framerate',
 			'int');
 		addOption(option);
-
-		option.minValue = 30;
-		option.maxValue = 1000;
+		final refreshRate:Int = FlxG.stage.application.window.displayMode.refreshRate;
+		option.minValue = 60;
+		option.maxValue = 360; // The maximum frame rate to 360 i guess?
+		option.defaultValue = Std.int(FlxMath.bound(refreshRate, option.minValue, option.maxValue));
 		option.displayFormat = '%v FPS';
 		option.onChange = onChangeFramerate;
 		#end
 
 		super();
-		insert(1, boyfriend);
 	}
 
 	function onChangeAntiAliasing()
@@ -90,6 +84,5 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 	override function changeSelection(change:Int = 0)
 	{
 		super.changeSelection(change);
-		boyfriend.visible = (antialiasingOption == curSelected);
 	}
 }

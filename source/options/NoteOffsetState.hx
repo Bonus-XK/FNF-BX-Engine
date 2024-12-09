@@ -4,10 +4,11 @@ import flixel.math.FlxPoint;
 
 import backend.StageData;
 import objects.Character;
-import objects.HealthBar;
+import objects.Bar;
 import flixel.addons.display.shapes.FlxShapeCircle;
 
 import states.stages.StageWeek1 as BackgroundStage;
+import states.MainMenuState;
 
 class NoteOffsetState extends MusicBeatState
 {
@@ -27,7 +28,7 @@ class NoteOffsetState extends MusicBeatState
 	var barPercent:Float = 0;
 	var delayMin:Int = -500;
 	var delayMax:Int = 500;
-	var timeBar:HealthBar;
+	var timeBar:Bar;
 	var timeTxt:FlxText;
 	var beatText:Alphabet;
 	var beatTween:FlxTween;
@@ -39,6 +40,8 @@ class NoteOffsetState extends MusicBeatState
 
 	override public function create()
 	{
+		Application.current.window.title = "Friday Night Funkin': SB Engine v" + MainMenuState.sbEngineVersion + " - Options Menu (In Note Offset Menu)";
+		if (ClientPrefs.data.cacheOnGPU) Paths.clearStoredMemory();
 		// Cameras
 		camGame = new FlxCamera();
 		camHUD = new FlxCamera();
@@ -62,15 +65,18 @@ class NoteOffsetState extends MusicBeatState
 		new BackgroundStage();
 
 		// Characters
-		gf = new Character(400, 130, 'gf');
-		gf.x += gf.positionArray[0];
-		gf.y += gf.positionArray[1];
-		gf.scrollFactor.set(0.95, 0.95);
-		boyfriend = new Character(770, 100, 'bf', true);
-		boyfriend.x += boyfriend.positionArray[0];
-		boyfriend.y += boyfriend.positionArray[1];
-		add(gf);
-		add(boyfriend);
+		if (ClientPrefs.data.objects) {
+			gf = new Character(400, 130, 'gf');
+			gf.x += gf.positionArray[0];
+			gf.y += gf.positionArray[1];
+			gf.scrollFactor.set(0.95, 0.95);
+			add(gf);
+
+			boyfriend = new Character(770, 100, 'bf', true);
+			boyfriend.x += boyfriend.positionArray[0];
+			boyfriend.y += boyfriend.positionArray[1];
+			add(boyfriend);
+		}
 
 		// Combo stuff
 		coolText = new FlxText(0, 0, 0, '', 32);
@@ -107,6 +113,8 @@ class NoteOffsetState extends MusicBeatState
 			daLoop++;
 		}
 
+		if (ClientPrefs.data.cacheOnGPU) Paths.clearUnusedMemory();
+
 		dumbTexts = new FlxTypedGroup<FlxText>();
 		dumbTexts.cameras = [camHUD];
 		add(dumbTexts);
@@ -124,7 +132,7 @@ class NoteOffsetState extends MusicBeatState
 		add(beatText);
 		
 		timeTxt = new FlxText(0, 600, FlxG.width, "", 32);
-		timeTxt.setFormat(Paths.font("future.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		timeTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		timeTxt.scrollFactor.set();
 		timeTxt.borderSize = 2;
 		timeTxt.visible = false;
@@ -133,12 +141,13 @@ class NoteOffsetState extends MusicBeatState
 		barPercent = ClientPrefs.data.noteOffset;
 		updateNoteDelay();
 		
-		timeBar = new HealthBar(0, timeTxt.y + (timeTxt.height / 3), 'healthBar', function() return barPercent, delayMin, delayMax);
+		timeBar = new Bar(0, timeTxt.y + (timeTxt.height / 3), 'healthBar', function() return barPercent, delayMin, delayMax);
 		timeBar.scrollFactor.set();
 		timeBar.screenCenter(X);
 		timeBar.visible = false;
 		timeBar.cameras = [camHUD];
-		timeBar.leftBar.color = FlxColor.LIME;
+		timeBar.leftBar.color = FlxColor.PURPLE;
+		timeBar.rightBar.color = 0xFF1A1A1A;
 
 		add(timeBar);
 		add(timeTxt);
@@ -152,7 +161,7 @@ class NoteOffsetState extends MusicBeatState
 		add(blackBox);
 
 		changeModeText = new FlxText(0, 4, FlxG.width, "", 32);
-		changeModeText.setFormat(Paths.font("future.ttf"), 32, FlxColor.WHITE, CENTER);
+		changeModeText.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER);
 		changeModeText.scrollFactor.set();
 		changeModeText.cameras = [camHUD];
 		add(changeModeText);
@@ -171,6 +180,11 @@ class NoteOffsetState extends MusicBeatState
 		FlxG.sound.playMusic(Paths.music('offsetSong'), 1, true);
 
 		super.create();
+		
+		#if android
+		addVirtualPad(FULL, A_B_C);
+		addPadCamera();
+		#end
 	}
 
 	var holdTime:Float = 0;
@@ -346,7 +360,7 @@ class NoteOffsetState extends MusicBeatState
 				}
 			}
 
-			if(controls.RESET)
+			if(controls.RESET #if android || MusicBeatState.virtualPad.buttonC.justPressed #end)
 			{
 				for (i in 0...ClientPrefs.data.comboOffset.length)
 				{
@@ -384,7 +398,7 @@ class NoteOffsetState extends MusicBeatState
 				updateNoteDelay();
 			}
 
-			if(controls.RESET)
+			if(controls.RESET #if android || MusicBeatState.virtualPad.buttonC.justPressed #end)
 			{
 				holdTime = 0;
 				barPercent = 0;
@@ -407,6 +421,7 @@ class NoteOffsetState extends MusicBeatState
 			persistentUpdate = false;
 			CustomFadeTransition.nextCamera = camOther;
 			MusicBeatState.switchState(new options.OptionsState());
+			Application.current.window.title = "Friday Night Funkin': SB Engine v" + MainMenuState.sbEngineVersion + " - Options Menu (Closing the state)";
 			if(OptionsState.onPlayState)
 			{
 				if(ClientPrefs.data.pauseMusic != 'None')
@@ -414,7 +429,7 @@ class NoteOffsetState extends MusicBeatState
 				else
 					FlxG.sound.music.volume = 0;
 			}
-			else FlxG.sound.playMusic(Paths.music('freakyMenu'));
+			else FlxG.sound.playMusic(Paths.music('freakyMenu-' + ClientPrefs.data.mainMenuMusic));
 			FlxG.mouse.visible = false;
 		}
 
@@ -481,7 +496,7 @@ class NoteOffsetState extends MusicBeatState
 		for (i in 0...4)
 		{
 			var text:FlxText = new FlxText(10, 48 + (i * 30), 0, '', 24);
-			text.setFormat(Paths.font("future.ttf"), 24, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			text.setFormat(Paths.font("vcr.ttf"), 24, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 			text.scrollFactor.set();
 			text.borderSize = 2;
 			dumbTexts.add(text);
@@ -500,9 +515,9 @@ class NoteOffsetState extends MusicBeatState
 		{
 			switch(i)
 			{
-				case 0: dumbTexts.members[i].text = 'Rank偏移：';
+				case 0: dumbTexts.members[i].text = 'Rating Offset:';
 				case 1: dumbTexts.members[i].text = '[' + ClientPrefs.data.comboOffset[0] + ', ' + ClientPrefs.data.comboOffset[1] + ']';
-				case 2: dumbTexts.members[i].text = 'Combo数字偏移：';
+				case 2: dumbTexts.members[i].text = 'Numbers Offset:';
 				case 3: dumbTexts.members[i].text = '[' + ClientPrefs.data.comboOffset[2] + ', ' + ClientPrefs.data.comboOffset[3] + ']';
 			}
 		}
@@ -511,7 +526,7 @@ class NoteOffsetState extends MusicBeatState
 	function updateNoteDelay()
 	{
 		ClientPrefs.data.noteOffset = Math.round(barPercent);
-		timeTxt.text = '当前偏移量：' + Math.floor(barPercent) + ' ms';
+		timeTxt.text = 'Current offset: ' + Math.floor(barPercent) + ' ms';
 	}
 
 	function updateMode()
@@ -535,14 +550,14 @@ class NoteOffsetState extends MusicBeatState
 		var str:String;
 		var str2:String;
 		if(onComboMenu)
-			str = 'Combo偏移';
+			str = 'Combo Offset';
 		else
-			str = '箭头/节拍延迟';
+			str = 'Note/Beat Delay';
 
 		if(!controls.controllerMode)
-			str2 = '(按 空格 切换)';
+			str2 = '(Press Accept to Switch)';
 		else
-			str2 = '(按手柄的 Start 切换)';
+			str2 = '(Press Start to Switch)';
 
 		changeModeText.text = '< ${str.toUpperCase()} ${str2.toUpperCase()} >';
 	}

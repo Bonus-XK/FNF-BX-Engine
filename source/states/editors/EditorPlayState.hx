@@ -1,5 +1,6 @@
 package states.editors;
 
+import objects.Bar;
 import backend.Song;
 import backend.Section;
 import backend.Rating;
@@ -20,6 +21,7 @@ class EditorPlayState extends MusicBeatSubstate
 	var finishTimer:FlxTimer = null;
 	var noteKillOffset:Float = 350;
 	var spawnTime:Float = 2000;
+	var updateTime:Bool = true;
 	var startingSong:Bool = true;
 
 	var playbackRate:Float = 1;
@@ -65,13 +67,23 @@ class EditorPlayState extends MusicBeatSubstate
 	var startPos:Float = 0;
 	var timerToStart:Float = 0;
 
+	var timeBar:Bar;
+	var timeTxt:FlxText;
+	var songPercent:Float = 0;
 	var scoreTxt:FlxText;
 	var dataTxt:FlxText;
+	var guitarHeroSustains:Bool = false;
+	var camHUD:FlxCamera;
 
 	public function new(playbackRate:Float)
 	{
 		super();
 		
+		Application.current.window.title = "Friday Night Funkin': SB Engine v" + MainMenuState.sbEngineVersion + " - Mod Editors menu (Chart Editor - Playtesting the chart: " + PlayState.SONG.song + " - " + Difficulty.getString() + ")";
+
+		camHUD = new FlxCamera();
+		camHUD.bgColor.alpha = 0;
+		FlxG.cameras.add(camHUD, false);
 		/* setting up some important data */
 		this.playbackRate = playbackRate;
 		this.startPos = Conductor.songPosition;
@@ -86,6 +98,7 @@ class EditorPlayState extends MusicBeatSubstate
 			FlxG.sound.music.stop();
 
 		cachePopUpScore();
+		guitarHeroSustains = ClientPrefs.data.guitarHeroSustains;
 		if(ClientPrefs.data.hitsoundVolume > 0) Paths.sound('hitsound');
 
 		/* setting up Editor PlayState stuff */
@@ -96,44 +109,136 @@ class EditorPlayState extends MusicBeatSubstate
 		bg.alpha = 0.9;
 		add(bg);
 		
+		noteGroup = new FlxTypedGroup<FlxBasic>();
+		add(noteGroup);
+		uiGroup = new FlxSpriteGroup();
+		add(uiGroup);
+
 		/**** NOTES ****/
 		strumLineNotes = new FlxTypedGroup<StrumNote>();
-		add(strumLineNotes);
+		noteGroup.add(strumLineNotes);
 		grpNoteSplashes = new FlxTypedGroup<NoteSplash>();
 		add(grpNoteSplashes);
 		
 		var splash:NoteSplash = new NoteSplash(100, 100);
 		grpNoteSplashes.add(splash);
 		splash.alpha = 0.000001; //cant make it invisible or it won't allow precaching
+		
+		dataTxt = new FlxText(10, 580, FlxG.width - 20, "Section: 0", 20);
+		switch (ClientPrefs.data.gameStyle) {
+			case 'SB Engine':
+				dataTxt.setFormat(Paths.font("bahnschrift.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'Psych Engine' | 'Kade Engine' | 'Cheeky':
+				dataTxt.setFormat(Paths.font("vcr.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'TGT Engine':
+				dataTxt.setFormat(Paths.font("calibri.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'Dave and Bambi':
+				dataTxt.setFormat(Paths.font("comic.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		}
+		dataTxt.scrollFactor.set();
+		dataTxt.borderSize = 1.25;
+		uiGroup.add(dataTxt);
+
+		scoreTxt = new FlxText(10, FlxG.height - 50, FlxG.width - 20, "", 20);
+		switch (ClientPrefs.data.gameStyle) {
+			case 'SB Engine':
+				scoreTxt.setFormat(Paths.font("bahnschrift.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'Psych Engine' | 'Kade Engine' | 'Cheeky':
+				scoreTxt.setFormat(Paths.font("vcr.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'TGT Engine':
+				scoreTxt.setFormat(Paths.font("calibri.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'Dave and Bambi':
+				scoreTxt.setFormat(Paths.font("comic.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		}
+		scoreTxt.scrollFactor.set();
+		scoreTxt.borderSize = 1.25;
+		scoreTxt.visible = !ClientPrefs.data.hideHud;
+		uiGroup.add(scoreTxt);
 
 		opponentStrums = new FlxTypedGroup<StrumNote>();
 		playerStrums = new FlxTypedGroup<StrumNote>();
+
+		Conductor.songPosition = -5000 / Conductor.songPosition;
+		timeTxt = new FlxText(PlayState.STRUM_X + (FlxG.width / 2) - 248, 19, 400, "", 32);
+		switch (ClientPrefs.data.gameStyle) {
+			case 'SB Engine':
+				timeTxt.setFormat(Paths.font("bahnschrift.ttf"), 29, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+				timeTxt.borderSize = 1.5;
+
+			case 'Psych Engine':
+				timeTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+				timeTxt.borderSize = 2;
+			
+			case 'Kade Engine':
+				timeTxt.setFormat(Paths.font("vcr.ttf"), 18, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+				timeTxt.borderSize = 1;
+
+			case 'Dave and Bambi':
+				timeTxt.setFormat(Paths.font("comic.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+				timeTxt.borderSize = 2;
+			
+			case 'TGT Engine':
+				timeTxt.setFormat(Paths.font("calibri.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+				timeTxt.borderSize = 2;
+			
+			case 'Cheeky':
+				timeTxt.setFormat(Paths.font("vcr.ttf"), 42, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+				timeTxt.borderSize = 1.25;
+		}
+		timeTxt.scrollFactor.set();
+		timeTxt.alpha = 0;
+		if(ClientPrefs.data.downScroll) timeTxt.y = FlxG.height - 44;
+		if(ClientPrefs.data.timeBarType == 'Song Name') timeTxt.text = PlayState.SONG.song;
+
+		switch (ClientPrefs.data.gameStyle) {
+			case 'Psych Engine' | 'TGT Engine':
+				timeBar = new Bar(0, timeTxt.y + (timeTxt.height / 4), 'timeBar', function() return songPercent, 0, 1);
+			
+			case 'SB Engine' | 'Kade Engine' | 'Cheeky' | 'Dave and Bambi':
+				timeBar = new Bar(0, timeTxt.y + (timeTxt.height / 4), 'healthBar', function() return songPercent, 0, 1);
+		}
+		timeBar.scrollFactor.set();
+		timeBar.screenCenter(X);
+		reloadTimeBarColor();
+		timeBar.alpha = 0;
+		uiGroup.add(timeBar);
+		uiGroup.add(timeTxt);
 		
 		generateStaticArrows(0);
 		generateStaticArrows(1);
 		/***************/
-		
-		scoreTxt = new FlxText(10, FlxG.height - 50, FlxG.width - 20, "", 20);
-		scoreTxt.setFormat(Paths.font("vcr.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-		scoreTxt.scrollFactor.set();
-		scoreTxt.borderSize = 1.25;
-		scoreTxt.visible = !ClientPrefs.data.hideHud;
-		add(scoreTxt);
-		
-		dataTxt = new FlxText(10, 580, FlxG.width - 20, "Section: 0", 20);
-		dataTxt.setFormat(Paths.font("vcr.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-		dataTxt.scrollFactor.set();
-		dataTxt.borderSize = 1.25;
-		add(dataTxt);
 
 		var tipText:FlxText = new FlxText(10, FlxG.height - 24, 0, 'Press ESC to Go Back to Chart Editor', 16);
+		#if android
+        tipText.text = 'Press BACK to Go Back to Chart Editor';
+		#end
 		tipText.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		switch (ClientPrefs.data.gameStyle) {
+			case 'SB Engine':
+				tipText.setFormat(Paths.font("bahnschrift.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'Psych Engine' | 'Kade Engine' | 'Cheeky':
+				tipText.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'TGT Engine':
+				tipText.setFormat(Paths.font("calibri.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			
+			case 'Dave and Bambi':
+				tipText.setFormat(Paths.font("comic.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		}
 		tipText.borderSize = 2;
 		tipText.scrollFactor.set();
-		add(tipText);
+		uiGroup.add(tipText);
 		FlxG.mouse.visible = false;
 		
 		generateSong(PlayState.SONG.song);
+		noteGroup.add(grpNoteSplashes);
 
 		FlxG.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyPress);
 		FlxG.stage.addEventListener(KeyboardEvent.KEY_UP, onKeyRelease);
@@ -142,13 +247,29 @@ class EditorPlayState extends MusicBeatSubstate
 		// Updating Discord Rich Presence (with Time Left)
 		DiscordClient.changePresence('Playtesting on Chart Editor', PlayState.SONG.song, null, true, songLength);
 		#end
+
+		uiGroup.cameras = [camHUD];
+		noteGroup.cameras = [camHUD];
+
 		RecalculateRating();
+		
+		#if android
+		addAndroidControls();
+		#end
+
+		#if android
+		MusicBeatState.androidControls.visible = true;
+		#end
 	}
 
 	override function update(elapsed:Float)
 	{
-		if(controls.BACK || FlxG.keys.justPressed.ESCAPE)
-		{
+		if (FlxG.keys.justPressed.ESCAPE #if android || FlxG.android.justReleased.BACK #end)
+		{		
+		    #if android
+			MusicBeatState.androidControls.visible = false;
+			#end
+			
 			endSong();
 			super.update(elapsed);
 			return;
@@ -212,8 +333,39 @@ class EditorPlayState extends MusicBeatSubstate
 			});
 		}
 		
+		var curTime:Float = Math.max(0, Conductor.songPosition - ClientPrefs.data.noteOffset);
+		songPercent = (curTime / songLength);
+
+		var songCalc:Float = (songLength - curTime);
+		if(ClientPrefs.data.timeBarType == 'Time Elapsed') songCalc = curTime;
+
+		var secondsTotal:Int = Math.floor(songCalc / 1000);
+		if(secondsTotal < 0) secondsTotal = 0;
+
 		var time:Float = CoolUtil.floorDecimal((Conductor.songPosition - ClientPrefs.data.noteOffset) / 1000, 1);
-		dataTxt.text = 'Time: $time / ${songLength/1000}\nSection: $curSection\nBeat: $curBeat\nStep: $curStep';
+		if (ClientPrefs.data.timeBarType == 'Time Left') {
+			dataTxt.text = 'Time: ${FlxStringUtil.formatTime(secondsTotal, false)}\nSection: $curSection\nBeat: $curBeat\nStep: $curStep';
+		} else if (ClientPrefs.data.timeBarType == 'Time Elapsed') {
+			dataTxt.text = 'Time: ${FlxStringUtil.formatTime(FlxG.sound.music.time / 1000, false)}\nSection: $curSection\nBeat: $curBeat\nStep: $curStep';
+		} else if (ClientPrefs.data.timeBarType == 'Song Name + Time Left'){
+			dataTxt.text = PlayState.SONG.song + ' [${FlxStringUtil.formatTime(secondsTotal, false)}]\nSection: $curSection\nBeat: $curBeat\nStep: $curStep';
+		} else if (ClientPrefs.data.timeBarType == 'Song Name + Time Elapsed'){
+			dataTxt.text = PlayState.SONG.song + ' [${FlxStringUtil.formatTime(FlxG.sound.music.time / 1000, false)}]\nSection: $curSection\nBeat: $curBeat\nStep: $curStep';
+		} else if (ClientPrefs.data.timeBarType == 'Modern Time') {
+			dataTxt.text = 'Time: ${FlxStringUtil.formatTime(FlxG.sound.music.time / 1000, false)} / ${FlxStringUtil.formatTime(songLength / 1000, false)}\nSection: $curSection\nBeat: $curBeat\nStep: $curStep';
+		} else if (ClientPrefs.data.timeBarType == 'Modern Time Elapsed') {
+			dataTxt.text = 'Time: ${FlxStringUtil.formatTime(FlxG.sound.music.time / 1000, false)} / ${FlxStringUtil.formatTime(FlxG.sound.music.length / 1000, false)}\nSection: $curSection\nBeat: $curBeat\nStep: $curStep';
+		} else {
+			dataTxt.text = 'Time: $time / ${songLength/1000}\nSection: $curSection\nBeat: $curBeat\nStep: $curStep';
+		}
+
+		if(ClientPrefs.data.timeBarType != 'Song Name') timeTxt.text = FlxStringUtil.formatTime(secondsTotal, false);
+		if(ClientPrefs.data.timeBarType == 'Song Name + Time') timeTxt.text = PlayState.SONG.song + ' [${FlxStringUtil.formatTime(secondsTotal, false)}]';
+		if(ClientPrefs.data.timeBarType == 'Song Name + Time Elapsed') timeTxt.text = PlayState.SONG.song + ' [${FlxStringUtil.formatTime(FlxG.sound.music.time / 1000, false)}]';
+		if(ClientPrefs.data.timeBarType == 'Song Name + Difficulty') timeTxt.text = PlayState.SONG.song + ' [${Difficulty.getString()}]';
+		if(ClientPrefs.data.timeBarType == 'Modern Time') timeTxt.text = FlxStringUtil.formatTime(secondsTotal, false) + ' / ' + FlxStringUtil.formatTime(songLength / 1000, false);
+		if(ClientPrefs.data.timeBarType == 'Modern Time Elapsed') timeTxt.text = FlxStringUtil.formatTime(FlxG.sound.music.time / 1000, false) + ' / ' + FlxStringUtil.formatTime(FlxG.sound.music.length / 1000, false);
+
 		super.update(elapsed);
 	}
 	
@@ -281,6 +433,19 @@ class EditorPlayState extends MusicBeatSubstate
 
 		// Song duration in a float, useful for the time left feature
 		songLength = FlxG.sound.music.length;
+
+		switch (ClientPrefs.data.gameStyle) {
+			case 'SB Engine':
+				FlxTween.tween(timeBar, {alpha: 1}, 0.8, {ease: FlxEase.sineInOut});
+				FlxTween.tween(timeTxt, {alpha: 1}, 0.8, {ease: FlxEase.sineInOut});
+
+			case 'Psych Engine' | 'TGT Engine':
+				FlxTween.tween(timeBar, {alpha: 1}, 0.5, {ease: FlxEase.expoInOut});
+				FlxTween.tween(timeTxt, {alpha: 1}, 0.5, {ease: FlxEase.expoInOut});
+			
+			case 'Kade Engine' | 'Dave and Bambi':
+				FlxTween.tween(timeTxt, {alpha: 1}, 0.5);
+		}
 	}
 
 	// Borrowed from PlayState
@@ -313,7 +478,7 @@ class EditorPlayState extends MusicBeatSubstate
 		FlxG.sound.music.volume = 0;
 
 		notes = new FlxTypedGroup<Note>();
-		add(notes);
+		noteGroup.add(notes);
 
 		var noteData:Array<SwagSection>;
 
@@ -471,6 +636,11 @@ class EditorPlayState extends MusicBeatSubstate
 		}
 		close();
 	}
+
+	// Stores HUD Objects in a Group
+	public var uiGroup:FlxSpriteGroup;
+	// Stores Note Objects in a Group
+	public var noteGroup:FlxTypedGroup<FlxBasic>;
 
 	private function cachePopUpScore()
 	{
@@ -733,8 +903,11 @@ class EditorPlayState extends MusicBeatSubstate
 		for (key in keysArray)
 		{
 			holdArray.push(controls.pressed(key));
-			pressArray.push(controls.justPressed(key));
-			releaseArray.push(controls.justReleased(key));
+			if(controls.controllerMode)
+			{
+				pressArray.push(controls.justPressed(key));
+				releaseArray.push(controls.justReleased(key));
+			}
 		}
 
 		// TO DO: Find a better way to handle controller inputs, this should work for now
@@ -744,13 +917,22 @@ class EditorPlayState extends MusicBeatSubstate
 					keyPressed(i);
 
 		// rewritten inputs???
-		notes.forEachAlive(function(daNote:Note)
-		{
-			// hold note functions
-			if (daNote.isSustainNote && holdArray[daNote.noteData] && daNote.canBeHit
-				&& daNote.mustPress && !daNote.tooLate && !daNote.wasGoodHit && !daNote.blockHit)
-				goodNoteHit(daNote);
-		});
+		if (notes.length > 0) {
+			for (n in notes) { // I can't do a filter here, that's kinda awesome
+				var canHit:Bool = (n != null && n.canBeHit && n.mustPress &&
+					!n.tooLate && !n.wasGoodHit && !n.blockHit);
+
+				if (guitarHeroSustains)
+					canHit = canHit && n.parent != null && n.parent.wasGoodHit;
+
+				if (canHit && n.isSustainNote) {
+					var released:Bool = !holdArray[n.noteData];
+					
+					if (!released)
+						goodNoteHit(n);
+				}
+			}
+		}
 
 		// TO DO: Find a better way to handle controller inputs, this should work for now
 		if(controls.controllerMode && releaseArray.contains(true))
@@ -758,7 +940,6 @@ class EditorPlayState extends MusicBeatSubstate
 				if(releaseArray[i])
 					keyReleased(i);
 	}
-
 	
 	function opponentNoteHit(note:Note):Void
 	{
@@ -768,69 +949,86 @@ class EditorPlayState extends MusicBeatSubstate
 		var strum:StrumNote = opponentStrums.members[Std.int(Math.abs(note.noteData))];
 		if(strum != null) {
 			strum.playAnim('confirm', true);
-			strum.resetAnim = Conductor.stepCrochet * 1.25 / 1000 / playbackRate;
+			strum.resetAnim = Conductor.stepCrochet * 1.5 / 1000;
 		}
 		note.hitByOpponent = true;
 
 		if (!note.isSustainNote)
-		{
-			note.kill();
-			notes.remove(note, true);
-			note.destroy();
-		}
+			invalidateNote(note);
 	}
 
 	function goodNoteHit(note:Note):Void
 	{
-		if (!note.wasGoodHit)
-		{
-			note.wasGoodHit = true;
-			if (ClientPrefs.data.hitsoundVolume > 0 && !note.hitsoundDisabled)
-				FlxG.sound.play(Paths.sound('hitsound'), ClientPrefs.data.hitsoundVolume);
+		if(note.wasGoodHit) return;
 
-			if(note.hitCausesMiss) {
-				noteMiss(note);
-				if(!note.noteSplashData.disabled && !note.isSustainNote)
-					spawnNoteSplashOnNote(note);
+		note.wasGoodHit = true;
+		if (ClientPrefs.data.hitsoundVolume > 0 && !note.hitsoundDisabled)
+			FlxG.sound.play(Paths.sound('hitsound'), ClientPrefs.data.hitsoundVolume);
 
-				if (!note.isSustainNote)
-				{
-					note.kill();
-					notes.remove(note, true);
-					note.destroy();
-				}
-				return;
-			}
+		if(note.hitCausesMiss) {
+			noteMiss(note);
+			if(!note.noteSplashData.disabled && !note.isSustainNote)
+				spawnNoteSplashOnNote(note);
 
 			if (!note.isSustainNote)
-			{
-				combo++;
-				if(combo > 9999) combo = 9999;
-				popUpScore(note);
-			}
-
-			var spr:StrumNote = playerStrums.members[note.noteData];
-			if(spr != null) spr.playAnim('confirm', true);
-			vocals.volume = 1;
-
-			if (!note.isSustainNote)
-			{
-				note.kill();
-				notes.remove(note, true);
-				note.destroy();
-			}
+				invalidateNote(note);
+			return;
 		}
+
+		if (!note.isSustainNote)
+		{
+			combo++;
+			if(combo > 9999) combo = 9999;
+			popUpScore(note);
+		}
+
+		var spr:StrumNote = playerStrums.members[note.noteData];
+		if(spr != null) spr.playAnim('confirm', true);
+		vocals.volume = 1;
+
+		if (!note.isSustainNote)
+			invalidateNote(note);
 	}
-	
+
 	function noteMiss(daNote:Note):Void { //You didn't hit the key and let it go offscreen, also used by Hurt Notes
 		//Dupe note remove
 		notes.forEachAlive(function(note:Note) {
-			if (daNote != note && daNote.mustPress && daNote.noteData == note.noteData && daNote.isSustainNote == note.isSustainNote && Math.abs(daNote.strumTime - note.strumTime) < 1) {
-				note.kill();
-				notes.remove(note, true);
-				note.destroy();
+			if (daNote != note && daNote.mustPress && daNote.noteData == note.noteData && daNote.isSustainNote == note.isSustainNote && Math.abs(daNote.strumTime - note.strumTime) < 1)
+				invalidateNote(daNote);
+			});
+
+		if (daNote != null && guitarHeroSustains && daNote.parent == null) {
+			if(daNote.tail.length > 0) {
+				daNote.alpha = 0.35;
+				for(childNote in daNote.tail) {
+					childNote.alpha = daNote.alpha;
+					childNote.missed = true;
+					childNote.canBeHit = false;
+					childNote.ignoreNote = true;
+					childNote.tooLate = true;
+				}
+				daNote.missed = true;
+				daNote.canBeHit = false;
 			}
-		});
+
+			if (daNote.missed)
+				return;
+		}
+
+		if (daNote != null && guitarHeroSustains && daNote.parent != null && daNote.isSustainNote) {
+			if (daNote.missed)
+				return; 
+			
+			var parentNote:Note = daNote.parent;
+			if (parentNote.wasGoodHit && parentNote.tail.length > 0) {
+				for (child in parentNote.tail) if (child != daNote) {
+					child.missed = true;
+					child.canBeHit = false;
+					child.ignoreNote = true;
+					child.tooLate = true;
+				}
+			}
+		}
 
 		// score and data
 		songMisses++;
@@ -838,6 +1036,12 @@ class EditorPlayState extends MusicBeatSubstate
 		RecalculateRating(true);
 		vocals.volume = 0;
 		combo = 0;
+	}
+
+	public function invalidateNote(note:Note):Void {
+		note.kill();
+		notes.remove(note, true);
+		note.destroy();
 	}
 
 	function spawnNoteSplashOnNote(note:Note) {
@@ -906,5 +1110,18 @@ class EditorPlayState extends MusicBeatSubstate
 		}
 		else if (songMisses < 10)
 			ratingFC = 'SDCB';
+	}
+
+	function reloadTimeBarColor() {
+		if (ClientPrefs.data.gameStyle == 'SB Engine') {
+			timeBar.leftBar.color = FlxColor.PURPLE;
+			timeBar.rightBar.color = 0xFF1A1A1A;
+		} else if (ClientPrefs.data.gameStyle == 'Psych Engine' || ClientPrefs.data.gameStyle == 'TGT Engine') {
+			timeBar.leftBar.color = FlxColor.WHITE;
+			timeBar.rightBar.color = FlxColor.BLACK;
+		} else if (ClientPrefs.data.gameStyle == 'Kade Engine' || ClientPrefs.data.gameStyle == 'Dave and Bambi' || ClientPrefs.data.gameStyle == 'Cheeky') {
+			timeBar.leftBar.color = FlxColor.LIME;
+			timeBar.rightBar.color = FlxColor.GRAY;
+		}
 	}
 }

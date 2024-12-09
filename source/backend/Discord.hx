@@ -3,19 +3,21 @@ package backend;
 import Sys.sleep;
 import discord_rpc.DiscordRpc;
 import lime.app.Application;
+import states.MainMenuState;
 
 class DiscordClient
 {
 	public static var isInitialized:Bool = false;
-	private static var _defaultID:String = "863222024192262205";
+	private static var _defaultID:String = "1059518348196597831";
 	public static var clientID(default, set):String = _defaultID;
 
 	private static var _options:Dynamic = {
 		details: "In the Menus",
 		state: null,
 		largeImageKey: 'icon',
-		largeImageText: "Meteoric Engine",
-		smallImageKey : null,
+		largeImageText: "SB Engine",
+		smallImageKey : "ministefan",
+		smallImageText: 'Creator: Stefan2008',
 		startTimestamp : null,
 		endTimestamp : null
 	};
@@ -117,8 +119,9 @@ class DiscordClient
 		_options.details = details;
 		_options.state = state;
 		_options.largeImageKey = 'icon';
-		_options.largeImageText = "Engine Version: " + Main.meVersion;
+		_options.largeImageText = "Engine version: " + MainMenuState.sbEngineVersion + " (PE " + MainMenuState.psychEngineVersion + ") ";
 		_options.smallImageKey = smallImageKey;
+		_options.smallImageText = "Creator: Stefan2008";
 		// Obtained times are in milliseconds so they are divided so Discord can use it
 		_options.startTimestamp = Std.int(startTimestamp / 1000);
 		_options.endTimestamp = Std.int(endTimestamp / 1000);
