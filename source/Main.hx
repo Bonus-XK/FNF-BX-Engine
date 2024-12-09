@@ -44,6 +44,7 @@ class Main extends Sprite
 	};
 
 	public static var fpsVar:FPS;
+	public static var bxVersion:String = '1.0';
 	public static var watermark:Sprite;
 	public static var toastText:String = '';
 	public static var checkingToastMessage:Bool = false;
@@ -81,9 +82,9 @@ class Main extends Sprite
 
 	private function setupGame():Void
 	{
-		Application.current.window.title = "Friday Night Funkin': SB Engine v" + MainMenuState.sbEngineVersion;
+		Application.current.window.title = "FNF': BX Engine v" + Main.bxVersion;
 		#if android
-		toastText = "Welcome to: FNF': SB Engine v" + MainMenuState.sbEngineVersion;
+		toastText = "Welcome to: FNF': BX Engine v" + Main.bxVersion;
 		if(!checkingToastMessage) {		
 		    checkingToastMessage = true;
 		    AndroidDialogsExtend.OpenToast(toastText, 1);
@@ -187,7 +188,7 @@ class Main extends Sprite
 		dateNow = dateNow.replace(" ", "_");
 		dateNow = dateNow.replace(":", "'");
 
-		path = SUtil.getPath() + "./crash/" + "SB Engine_" + dateNow + ".log";
+		path = SUtil.getPath() + "./crash/" + "BX Engine_" + dateNow + ".log";
 
 		for (stackItem in callStack)
 		{
@@ -200,7 +201,7 @@ class Main extends Sprite
 			}
 		}
 
-		errorMessage += "\nUncaught Error: " + e.error + "\nPlease report this error to the GitHub page: https://github.com/Stefan2008Git/FNF-SB-Engine\n\n> Crash Handler written by: sqirra-rng";
+		errorMessage += "\nUncaught Error: " + e.error + "\nPlease report this error to the GitHub page: https://github.com/Bonus-XK/FNF-BX-Engine\n\n> Crash Handler written by: sqirra-rng";
 
 		if (!FileSystem.exists(SUtil.getPath() + "crash/"))
 			FileSystem.createDirectory(SUtil.getPath() + "crash/");
@@ -218,7 +219,7 @@ class Main extends Sprite
 
 		FlxG.sound.music.stop();
 		FlxG.sound.play(Paths.sound('error'));
-		Application.current.window.alert(errorMessage, "Error! SB Engine v" + MainMenuState.sbEngineVersion);
+		Application.current.window.alert(errorMessage, "Error! BX Engine v" + MainMenuState.sbEngineVersion);
 		#if desktop
 		DiscordClient.shutdown();
 		#end

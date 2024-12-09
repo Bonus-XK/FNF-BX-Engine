@@ -2,7 +2,7 @@
 <project>
 	<!-- _________________________ Application Settings _________________________ -->
 
-	<app title="Friday Night Funkin': SB Engine" file="SB Engine" packageName="com.stefan2008.sbengine" package="com.stefan2008.sbengine" main="Main" version="3.0.0" company="Stefan2008" />
+	<app title="FNF': BX Engine" file="BX Engine" packageName="com.bonusxk.bxengine" package="com.bonusxk.bxengine" main="Main" version="1.0" company="Bonus-XK" />
 
 	<!--Switch Export with Unique ApplicationID and Icon-->
 	<set name="APP_ID" value="0x0100f6c013bbc000" />
@@ -86,10 +86,6 @@
 	<assets path="assets/week_assets"   library="week_assets"   rename="assets" exclude="*.ogg" if="web"/>
 	<assets path="assets/week_assets"   library="week_assets"   rename="assets" exclude="*.mp3" unless="web"/>
 	
-	<section if="MODS_ALLOWED">
-		<assets path='example_mods' rename='mods' embed='false'/>
-	</section>
-	<assets path="CHANGELOGS.md" rename='changelogs.txt' />
 	<!-- <template path='mods' /> -->
 	
 	<!-- assets path="CHANGELOG.md" rename='changelog.txt' -->
